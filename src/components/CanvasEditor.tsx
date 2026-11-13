@@ -1,13 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
-import { Image as KonvaImage, Layer, Rect, Stage, Text, Transformer } from "react-konva";
+import {
+  Group, Image as KonvaImage, Layer, Rect, Stage, Text, Transformer,
+} from "react-konva";
 import type Konva from "konva";
 import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
-  type EditorElement,
-  type ThumbnailDocument,
+  CANVAS_HEIGHT, CANVAS_WIDTH, normalizeRotation,
+  type EditorElement, type ImageElement, type ThumbnailDocument,
 } from "../editor/model";
+import { createOutlineBitmap } from "../editor/outline";
 import type { ImageAsset } from "../editor/imageLoader";
 
 type Props = {
@@ -20,6 +21,83 @@ type Props = {
   onSelect: (id: string | null) => void;
   onChange: (id: string, patch: Partial<EditorElement>) => void;
 };
+
+type ImageNodeProps = {
+  element: ImageElement;
+  asset: ImageAsset;
+  bindNode: (id: string, node: Konva.Node | null) => void;
+  onSelect: (id: string) => void;
+  onChange: (id: string, patch: Partial<ImageElement>) => void;
+};
+
+function ImageNode({ element, asset, bindNode, onSelect, onChange }: ImageNodeProps) {
+  // Cached by asset/size/style so dragging and rotating never re-rasterize the outline.
+  const outline = useMemo(() => {
+    if (element.outlineStyle === "none") return null;
+    return createOutlineBitmap(
+      asset.image,
+      element.width,
+      element.height,
+      element.outlineWidth,
+      element.outlineColor,
+      element.outlineStyle,
+    );
+  }, [
+    asset.image, element.width, element.height, element.outlineStyle,
+    element.outlineWidth, element.outlineColor,
+  ]);
+
+  const onTransformEnd = (event: Konva.KonvaEventObject<Event>) => {
+    const node = event.target as Konva.Group;
+    const width = Math.max(20, element.width * Math.abs(node.scaleX()));
+    const height = Math.max(20, element.height * Math.abs(node.scaleY()));
+    const rotation = normalizeRotation(node.rotation());
+    node.scale({ x: 1, y: 1 });
+    onChange(element.id, {
+      x: node.x() - width / 2, y: node.y() - height / 2,
+      width, height, rotation,
+    });
+  };
+
+  return (
+    <Group
+      ref={(node) => bindNode(element.id, node)}
+      x={element.x + element.width / 2}
+      y={element.y + element.height / 2}
+      offsetX={element.width / 2}
+      offsetY={element.height / 2}
+      rotation={element.rotation}
+      draggable
+      onClick={() => onSelect(element.id)}
+      onTap={() => onSelect(element.id)}
+      onDragEnd={(event) => {
+        onChange(element.id, {
+          x: event.target.x() - element.width / 2,
+          y: event.target.y() - element.height / 2,
+        });
+      }}
+      onTransformEnd={onTransformEnd}
+    >
+      {outline && (
+        <KonvaImage
+          listening={false}
+          image={outline.canvas}
+          x={-outline.padding}
+          y={-outline.padding}
+          width={element.width + outline.padding * 2}
+          height={element.height + outline.padding * 2}
+        />
+      )}
+      <KonvaImage
+        image={asset.image}
+        x={0}
+        y={0}
+        width={element.width}
+        height={element.height}
+      />
+    </Group>
+  );
+}
 
 export default function CanvasEditor({
   documentValue,
@@ -43,20 +121,9 @@ export default function CanvasEditor({
     transformer.getLayer()?.batchDraw();
   }, [selectedId, documentValue.elements, assets]);
 
-  const setNode = (id: string, node: Konva.Node | null) => {
+  const bindNode = (id: string, node: Konva.Node | null) => {
     if (node) nodes.current.set(id, node);
     else nodes.current.delete(id);
-  };
-
-  const updatePosition = (id: string, node: Konva.Node) => {
-    onChange(id, { x: node.x(), y: node.y() });
-  };
-
-  const updateImageSize = (id: string, node: Konva.Node) => {
-    const width = Math.max(20, node.width() * Math.abs(node.scaleX()));
-    const height = Math.max(20, node.height() * Math.abs(node.scaleY()));
-    node.scale({ x: 1, y: 1 });
-    onChange(id, { x: node.x(), y: node.y(), width, height });
   };
 
   const updateTextWidth = (id: string, node: Konva.Node) => {
@@ -71,10 +138,7 @@ export default function CanvasEditor({
       style={{ width: CANVAS_WIDTH * scale, height: CANVAS_HEIGHT * scale }}
       aria-label="썸네일 편집 캔버스"
     >
-      <div
-        className="canvas-scaled"
-        style={{ transform: "scale(" + scale + ")" }}
-      >
+      <div className="canvas-scaled" style={{ transform: "scale(" + scale + ")" }}>
         <Stage
           ref={stageRef}
           width={CANVAS_WIDTH}
@@ -104,26 +168,20 @@ export default function CanvasEditor({
                 const asset = assets.get(element.assetId);
                 if (!asset) return null;
                 return (
-                  <KonvaImage
+                  <ImageNode
                     key={element.id}
-                    ref={(node) => setNode(element.id, node)}
-                    image={asset.image}
-                    x={element.x}
-                    y={element.y}
-                    width={element.width}
-                    height={element.height}
-                    draggable
-                    onClick={() => onSelect(element.id)}
-                    onTap={() => onSelect(element.id)}
-                    onDragEnd={(event) => updatePosition(element.id, event.target)}
-                    onTransformEnd={(event) => updateImageSize(element.id, event.target)}
+                    element={element}
+                    asset={asset}
+                    bindNode={bindNode}
+                    onSelect={(id) => onSelect(id)}
+                    onChange={(id, patch) => onChange(id, patch)}
                   />
                 );
               }
               return (
                 <Text
                   key={element.id}
-                  ref={(node) => setNode(element.id, node)}
+                  ref={(node) => bindNode(element.id, node)}
                   x={element.x}
                   y={element.y}
                   width={element.width}
@@ -138,7 +196,12 @@ export default function CanvasEditor({
                   draggable
                   onClick={() => onSelect(element.id)}
                   onTap={() => onSelect(element.id)}
-                  onDragEnd={(event) => updatePosition(element.id, event.target)}
+                  onDragEnd={(event) => {
+                    onChange(element.id, {
+                      x: event.target.x(),
+                      y: event.target.y(),
+                    });
+                  }}
                   onTransformEnd={(event) => updateTextWidth(element.id, event.target)}
                 />
               );
@@ -147,7 +210,7 @@ export default function CanvasEditor({
           <Layer ref={selectionLayerRef}>
             <Transformer
               ref={transformerRef}
-              rotateEnabled={false}
+              rotateEnabled={selected?.type === "image"}
               flipEnabled={false}
               keepRatio={selected?.type === "image"}
               enabledAnchors={

@@ -2,7 +2,16 @@ export const CANVAS_WIDTH = 1280;
 export const CANVAS_HEIGHT = 720;
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+import type { OutlineStyle } from "./outline";
+
 export type Align = "left" | "center" | "right";
+
+/** Normalize angles after wheel/Transformer rotations. */
+export function normalizeRotation(degrees: number): number {
+  if (!Number.isFinite(degrees)) return 0;
+  const normalized = ((degrees + 180) % 360 + 360) % 360 - 180;
+  return Math.round(normalized * 10) / 10;
+}
 
 export type ImageElement = {
   id: string;
@@ -12,6 +21,10 @@ export type ImageElement = {
   y: number;
   width: number;
   height: number;
+  rotation: number;
+  outlineStyle: OutlineStyle;
+  outlineWidth: number;
+  outlineColor: string;
 };
 
 export type TextElement = {

@@ -8,6 +8,7 @@ import {
   initialDocument,
   moveLayer,
   placeImage,
+  normalizeRotation,
   type EditorElement,
   type TextElement,
   type ThumbnailDocument,
@@ -125,6 +126,10 @@ export default function App() {
           type: "image",
           assetId: asset.id,
           ...placeImage(asset.image.naturalWidth, asset.image.naturalHeight),
+          rotation: 0,
+          outlineStyle: "none",
+          outlineWidth: 12,
+          outlineColor: "#FFFFFF",
         };
         assetStoreRef.current.set(asset.id, asset);
         setDocumentValue((previous) => ({ ...previous, elements: [...previous.elements, element] }));
@@ -411,7 +416,94 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <p className="helper">캔버스에서 모서리를 드래그해 크기를 조절하세요. 이미지의 비율은 유지됩니다.</p>
+                <div className="image-properties">
+                  <label className="form-label" htmlFor="image-rotation">오브젝트 회전</label>
+                  <div className="rotation-controls">
+                    <input
+                      id="image-rotation-range"
+                      type="range"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      aria-label="이미지 회전 각도"
+                      value={selected.rotation}
+                      onChange={(event) => updateElement(selected.id, { rotation: Number(event.target.value) })}
+                    />
+                    <div className="rotation-number">
+                      <input
+                        id="image-rotation"
+                        type="number"
+                        min={-180}
+                        max={180}
+                        step={1}
+                        value={selected.rotation}
+                        onChange={(event) => {
+                          const angle = Number(event.target.value);
+                          if (Number.isFinite(angle)) {
+                            updateElement(selected.id, { rotation: normalizeRotation(angle) });
+                          }
+                        }}
+                        aria-label="회전 각도"
+                      />
+                      <span>°</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="reset-rotation"
+                      title="회전 초기화"
+                      onClick={() => updateElement(selected.id, { rotation: 0 })}
+                    >초기화</button>
+                  </div>
+                  <p className="helper">캔버스의 회전 핸들을 드래그할 수도 있습니다.</p>
+                  <div className="image-option-divider" />
+                  <span className="form-label">테두리 스타일</span>
+                  <div className="outline-style-picker" role="group" aria-label="이미지 테두리 스타일">
+                    {([
+                      ["none", "없음"],
+                      ["clean", "깔끔하게"],
+                      ["rough", "손그림 컷아웃"],
+                    ] as const).map(([style, label]) => (
+                      <button
+                        type="button"
+                        key={style}
+                        className={selected.outlineStyle === style ? "active" : ""}
+                        aria-pressed={selected.outlineStyle === style}
+                        onClick={() => updateElement(selected.id, { outlineStyle: style })}
+                      >{label}</button>
+                    ))}
+                  </div>
+                  {selected.outlineStyle !== "none" && (
+                    <>
+                      <div className="outline-settings">
+                        <div className="outline-width-control">
+                          <label className="form-label" htmlFor="outline-width">테두리 두께 <strong>{selected.outlineWidth}px</strong></label>
+                          <input
+                            id="outline-width"
+                            type="range"
+                            min={3}
+                            max={30}
+                            step={1}
+                            value={selected.outlineWidth}
+                            onChange={(event) => updateElement(selected.id, { outlineWidth: Number(event.target.value) })}
+                          />
+                        </div>
+                        <div className="outline-color-control">
+                          <label className="form-label" htmlFor="outline-color">테두리 색상</label>
+                          <div className="text-color-control">
+                            <input
+                              id="outline-color"
+                              type="color"
+                              value={selected.outlineColor}
+                              onChange={(event) => updateElement(selected.id, { outlineColor: event.target.value })}
+                            />
+                            <span>{selected.outlineColor.toUpperCase()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="helper">피사체 윤곽을 따라가는 테두리입니다. 투명 배경 PNG/WebP 사용을 권장하며, 일반 JPG는 사각형 테두리로 표현됩니다.</p>
+                    </>
+                  )}
+                </div>
               )}
               <div className="layer-actions">
                 <button type="button" onClick={() => shiftSelected(-1)}>← 뒤로</button>
