@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveLayer, placeImage, type EditorElement } from "./model";
+import { moveLayer, placeImage, normalizeRotation, type EditorElement } from "./model";
 
 const element = (id: string): EditorElement => ({
   id, type: "text", text: id, x: 0, y: 0, width: 100,
@@ -28,5 +28,16 @@ describe("layer order", () => {
   it("does not go past the edge", () => {
     expect(moveLayer(initial, "a", -1)).toBe(initial);
     expect(moveLayer(initial, "missing", 1)).toBe(initial);
+  });
+});
+
+describe("image rotation normalization", () => {
+  it("normalizes any angle to [-180, 180)", () => {
+    expect(normalizeRotation(0)).toBe(0);
+    expect(normalizeRotation(45)).toBe(45);
+    expect(normalizeRotation(270)).toBe(-90);
+    expect(normalizeRotation(-270)).toBe(90);
+    expect(normalizeRotation(540)).toBe(-180);
+    expect(normalizeRotation(Number.NaN)).toBe(0);
   });
 });
