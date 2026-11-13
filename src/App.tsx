@@ -13,9 +13,9 @@ import {
   type ThumbnailDocument,
 } from "./editor/model";
 import { isHexColor, normalizeHexColor } from "./editor/color";
+import { BACKGROUND_PRESETS, TEXT_PRESETS } from "./editor/palette";
 import { loadImageFile, releaseImage, type ImageAsset } from "./editor/imageLoader";
 
-const SWATCHES = ["#111827", "#000000", "#FFFFFF", "#F5EDE3", "#E99C81", "#4069DB"];
 const FONTS = [
   { label: "기본 고딕", value: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif" },
   { label: "명조", value: "Georgia, Batang, serif" },
@@ -274,16 +274,16 @@ export default function App() {
               </div>
             </div>
             <div className="swatch-row" aria-label="추천 배경색">
-              {SWATCHES.map((color) => (
+              {BACKGROUND_PRESETS.map((preset) => (
                 <button
-                  key={color}
+                  key={preset.value}
                   type="button"
-                  className={"swatch" + (documentValue.backgroundColor === color ? " active" : "")}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                  aria-label={"배경색 " + color}
-                  aria-pressed={documentValue.backgroundColor === color}
-                  onClick={() => changeBackground(color)}
+                  className={"swatch" + (documentValue.backgroundColor.toUpperCase() === preset.value ? " active" : "")}
+                  style={{ backgroundColor: preset.value }}
+                  title={preset.name + " · " + preset.value}
+                  aria-label={"배경색 " + preset.name + " " + preset.value}
+                  aria-pressed={documentValue.backgroundColor.toUpperCase() === preset.value}
+                  onClick={() => changeBackground(preset.value)}
                 />
               ))}
             </div>
@@ -359,6 +359,23 @@ export default function App() {
                         />
                         <span>{selected.color.toUpperCase()}</span>
                       </div>
+                    </div>
+                  </div>
+                  <div className="text-presets">
+                    <span className="form-label">추천 글자색</span>
+                    <div className="swatch-row text-swatch-row" role="group" aria-label="추천 글자색">
+                      {TEXT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          className={"swatch" + (selected.color.toUpperCase() === preset.value ? " active" : "")}
+                          style={{ backgroundColor: preset.value }}
+                          title={preset.name + " · " + preset.value}
+                          aria-label={"글자색 " + preset.name + " " + preset.value}
+                          aria-pressed={selected.color.toUpperCase() === preset.value}
+                          onClick={() => updateElement(selected.id, { color: preset.value })}
+                        />
+                      ))}
                     </div>
                   </div>
                   <label className="form-label" htmlFor="font-family">글꼴</label>
