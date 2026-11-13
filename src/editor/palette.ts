@@ -1,4 +1,6 @@
-/** Ten curated colors for each editing context. */
+/** Ten curated colors for each editing context.
+ * Text accent colors are approximations sampled from the supplied thumbnail references.
+ */
 export const BACKGROUND_PRESETS = [
   { name: "차콜", value: "#111827" },
   { name: "블랙", value: "#000000" },
@@ -16,11 +18,11 @@ export const TEXT_PRESETS = [
   { name: "화이트", value: "#FFFFFF" },
   { name: "차콜", value: "#111827" },
   { name: "아이보리", value: "#F5EDE3" },
-  { name: "핑크", value: "#F39AA9" },
-  { name: "옐로", value: "#F1D16E" },
+  { name: "핑크", value: "#EF9BA3" },
+  { name: "옐로", value: "#F2E27A" },
   { name: "스카이", value: "#8FC2FF" },
   { name: "민트", value: "#A7D9B4" },
-  { name: "라벤더", value: "#C7ABFF" },
+  { name: "라벤더", value: "#B6AAFF" },
   { name: "코랄", value: "#FF8D6D" },
   { name: "레드", value: "#E65454" },
 ] as const;

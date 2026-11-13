@@ -15,3 +15,13 @@ describe.each([
     }
   });
 });
+
+describe("reference thumbnail accents", () => {
+  it.each([
+    ["핑크", "#EF9BA3"],
+    ["옐로", "#F2E27A"],
+    ["라벤더", "#B6AAFF"],
+  ])("includes %s with the selected reference shade", (name, color) => {
+    expect(TEXT_PRESETS).toContainEqual({ name, value: color });
+  });
+});
