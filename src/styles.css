@@ -172,6 +172,49 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .text-color-control span { font-size: 10px; color: #dce0e7; letter-spacing: -.2px; }
 .text-presets { padding: 2px 0 5px; }
 .text-swatch-row { padding-top: 3px; }
+
+/* Image-specific controls live in the same sidebar as text settings. */
+.image-properties { display: flex; flex-direction: column; gap: 11px; }
+.image-properties input[type=range] { width: 100%; min-width: 0; accent-color: #e7a38d; cursor: pointer; }
+.rotation-controls { display: flex; align-items: center; gap: 9px; }
+.rotation-controls > input[type=range] { flex: 1; }
+.rotation-number {
+  display: flex; align-items: center; flex-shrink: 0;
+  background: #242935; border: 1px solid #373d48; border-radius: 9px;
+  padding: 0 5px; color: #d1d5df;
+}
+.rotation-number input {
+  width: 48px; min-width: 0; padding: 8px 4px;
+  background: none; border: 0; color: #f4f2f0; font-size: 12px;
+  text-align: right; appearance: textfield;
+}
+.rotation-number input::-webkit-inner-spin-button,
+.rotation-number input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.rotation-number span { padding-right: 3px; color: #aeb4bf; }
+.reset-rotation {
+  flex-shrink: 0; padding: 9px 8px; border: 1px solid #464c59;
+  border-radius: 8px; background: #2c303b; color: #e9e9ed; font-size: 10px;
+}
+.reset-rotation:hover { background: #3b414d; }
+.image-option-divider { border-top: 1px solid #373d48; margin: 7px 0 3px; }
+.outline-style-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.outline-style-picker button {
+  min-width: 0; min-height: 44px; padding: 7px 2px;
+  background: #242935; border: 1px solid #444958; border-radius: 9px;
+  color: #c8ccd4; font-size: 10px; font-weight: 700;
+}
+.outline-style-picker button:hover { background: #333844; }
+.outline-style-picker button.active {
+  background: #49353a; border-color: #e7a38d; color: #ffd0bd;
+}
+.outline-settings { display: grid; grid-template-columns: minmax(0, 1fr) 115px; gap: 15px; }
+.outline-width-control { min-width: 0; }
+.outline-width-control .form-label { display: flex; justify-content: space-between; gap: 4px; }
+.outline-width-control .form-label strong { font-size: 10px; color: #f6bba6; }
+.outline-color-control { min-width: 0; }
+.outline-color-control .text-color-control { gap: 5px; }
+.outline-color-control .text-color-control span { font-size: 9px; }
+
 .toggle-bold {
   width: 100%; min-height: 39px; border: 1px solid #3b414c;
   border-radius: 9px; background: #242935; color: #a5a9b2; font-size: 12px;
