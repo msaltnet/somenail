@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import {
-  Group, Image as KonvaImage, Layer, Rect, Stage, Text, Transformer,
+  Group, Image as KonvaImage, Layer, Path, Rect, Stage, Text, Transformer,
 } from "react-konva";
 import type Konva from "konva";
 import {
   CANVAS_HEIGHT, CANVAS_WIDTH, normalizeRotation,
   type EditorElement, type ImageElement, type ThumbnailDocument,
 } from "../editor/model";
-import { createOutlineBitmap } from "../editor/outline";
+import { createOutlinePaths } from "../editor/outline";
 import type { ImageAsset } from "../editor/imageLoader";
 
 type Props = {
@@ -31,20 +31,19 @@ type ImageNodeProps = {
 };
 
 function ImageNode({ element, asset, bindNode, onSelect, onChange }: ImageNodeProps) {
-  // Cached by asset/size/style so dragging and rotating never re-rasterize the outline.
+  // Cache SVG paths: moving, rotating, or changing their color never retraces the image.
   const outline = useMemo(() => {
     if (element.outlineStyle === "none") return null;
-    return createOutlineBitmap(
+    return createOutlinePaths(
       asset.image,
       element.width,
       element.height,
       element.outlineWidth,
-      element.outlineColor,
       element.outlineStyle,
     );
   }, [
-    asset.image, element.width, element.height, element.outlineStyle,
-    element.outlineWidth, element.outlineColor,
+    asset.image, element.width, element.height,
+    element.outlineStyle, element.outlineWidth,
   ]);
 
   const onTransformEnd = (event: Konva.KonvaEventObject<Event>) => {
@@ -79,14 +78,26 @@ function ImageNode({ element, asset, bindNode, onSelect, onChange }: ImageNodePr
       onTransformEnd={onTransformEnd}
     >
       {outline && (
-        <KonvaImage
+        <Group
           listening={false}
-          image={outline.canvas}
-          x={-outline.padding}
-          y={-outline.padding}
-          width={element.width + outline.padding * 2}
-          height={element.height + outline.padding * 2}
-        />
+          x={-outline.padding / outline.scale}
+          y={-outline.padding / outline.scale}
+          scaleX={1 / outline.scale}
+          scaleY={1 / outline.scale}
+        >
+          {outline.paths.map((path, index) => (
+            <Path
+              key={index}
+              data={path}
+              fillEnabled={false}
+              stroke={element.outlineColor}
+              strokeWidth={element.outlineWidth * outline.scale * 2}
+              lineCap="round"
+              lineJoin="round"
+              listening={false}
+            />
+          ))}
+        </Group>
       )}
       <KonvaImage
         image={asset.image}
