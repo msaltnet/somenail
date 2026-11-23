@@ -1,7 +1,8 @@
 /**
  * Traces an uploaded image's alpha silhouette into vector paths.
  * Clean: antialiased, simplified Bézier outline.
- * Rough: smooth, repeatable paper-cut undulations over the same silhouette.
+ * Rough: a filled paper cutout — gaps closed, straight scissor cuts, uneven
+ * border width — rendered behind the subject.
  *
  * The source image remains untouched and all processing runs in the browser.
  * Opaque photos have a rectangular silhouette; transparency is required to
@@ -206,49 +207,181 @@ export function curvePath(points: Point[], cornerRadius: number): string {
   return path + " Z";
 }
 
-function roughContour(points: Point[], outlineWidth: number, loopIndex: number): Point[] {
-  const samples: Point[] = [];
-  const lengths: number[] = [];
-  let perimeter = 0;
-  const step = 6;
-  for (let i = 0; i < points.length; i += 1) {
-    const start = points[i];
-    const end = points[(i + 1) % points.length];
-    const length = segmentLength(start, end);
-    const count = Math.max(1, Math.ceil(length / step));
-    for (let j = 0; j < count; j += 1) {
-      const t = j / count;
-      samples.push({
-        x: start.x + (end.x - start.x) * t,
-        y: start.y + (end.y - start.y) * t,
-      });
-      lengths.push(perimeter + length * t);
+/** Deterministic PRNG so a cutout keeps the same shape across re-renders. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const INF = 1e20;
+
+/** Felzenszwalb 1D squared distance transform, in place on f. */
+function edt1d(f: Float64Array, n: number, d: Float64Array, v: Int32Array, z: Float64Array) {
+  let k = 0;
+  v[0] = 0;
+  z[0] = -INF;
+  z[1] = INF;
+  for (let q = 1; q < n; q += 1) {
+    let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+    while (s <= z[k]) {
+      k -= 1;
+      s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
     }
-    perimeter += length;
+    k += 1;
+    v[k] = q;
+    z[k] = s;
+    z[k + 1] = INF;
   }
-  if (samples.length < 3 || perimeter <= 0) return points;
+  k = 0;
+  for (let q = 0; q < n; q += 1) {
+    while (z[k + 1] < q) k += 1;
+    d[q] = (q - v[k]) ** 2 + f[v[k]];
+  }
+}
+
+/** Exact squared Euclidean distance from every pixel to the nearest set pixel. */
+export function squaredDistanceTo(mask: Uint8Array, width: number, height: number): Float64Array {
+  const grid = new Float64Array(width * height);
+  for (let i = 0; i < grid.length; i += 1) grid[i] = mask[i] ? 0 : INF;
+  const size = Math.max(width, height);
+  const f = new Float64Array(size);
+  const d = new Float64Array(size);
+  const v = new Int32Array(size);
+  const z = new Float64Array(size + 1);
+  for (let x = 0; x < width; x += 1) {
+    for (let y = 0; y < height; y += 1) f[y] = grid[y * width + x];
+    edt1d(f, height, d, v, z);
+    for (let y = 0; y < height; y += 1) grid[y * width + x] = d[y];
+  }
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) f[x] = grid[y * width + x];
+    edt1d(f, width, d, v, z);
+    for (let x = 0; x < width; x += 1) grid[y * width + x] = d[x];
+  }
+  return grid;
+}
+
+/** Mark every empty pixel not reachable from the border as filled. */
+function fillHoles(mask: Uint8Array, width: number, height: number): Uint8Array {
+  const outside = new Uint8Array(mask.length);
+  const stack: number[] = [];
+  const push = (i: number) => {
+    if (!mask[i] && !outside[i]) {
+      outside[i] = 1;
+      stack.push(i);
+    }
+  };
+  for (let x = 0; x < width; x += 1) {
+    push(x);
+    push((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y += 1) {
+    push(y * width);
+    push(y * width + width - 1);
+  }
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % width;
+    if (x > 0) push(i - 1);
+    if (x < width - 1) push(i + 1);
+    if (i >= width) push(i - width);
+    if (i < mask.length - width) push(i + width);
+  }
+  const result = new Uint8Array(mask.length);
+  for (let i = 0; i < mask.length; i += 1) result[i] = outside[i] ? 0 : 1;
+  return result;
+}
+
+/**
+ * Paper silhouette: subject dilated by the border width, with narrow gaps and
+ * holes closed, as if someone cut loosely around it with scissors.
+ */
+export function paperMask(mask: Uint8Array, width: number, height: number, outlineWidth: number): Uint8Array {
+  const radius = Math.max(1, outlineWidth);
+  const bridge = Math.max(4, outlineWidth * 1.6);
+  const grow = radius + bridge;
+  const toSubject = squaredDistanceTo(mask, width, height);
+  const dilated = new Uint8Array(mask.length);
+  for (let i = 0; i < mask.length; i += 1) dilated[i] = toSubject[i] <= grow * grow ? 1 : 0;
+  // Erode back by `bridge` (morphological closing) to fill concavities.
+  const background = new Uint8Array(mask.length);
+  for (let i = 0; i < mask.length; i += 1) background[i] = dilated[i] ? 0 : 1;
+  const toBackground = squaredDistanceTo(background, width, height);
+  const closed = new Uint8Array(mask.length);
+  for (let i = 0; i < mask.length; i += 1) {
+    closed[i] = mask[i] || toBackground[i] > bridge * bridge ? 1 : 0;
+  }
+  return fillHoles(closed, width, height);
+}
+
+/**
+ * Turn a smooth silhouette into straight scissor cuts: uneven segment lengths,
+ * sharp corners, and a border that randomly widens and narrows.
+ */
+export function scissorContour(points: Point[], outlineWidth: number, seed: number): Point[] {
+  if (points.length < 3) return points;
+  const random = mulberry32(seed);
   const orientation = Math.sign(polygonArea(points)) || 1;
-  const amplitude = Math.min(4.5, Math.max(1.2, outlineWidth * 0.3));
-  const cycles = [Math.max(3, Math.round(perimeter / 120)),
-    Math.max(7, Math.round(perimeter / 38)),
-    Math.max(13, Math.round(perimeter / 16))];
-  const phase = loopIndex * 1.31 + 0.67;
-  return samples.map((point, index) => {
-    const prev = samples[(index - 1 + samples.length) % samples.length];
-    const next = samples[(index + 1) % samples.length];
-    const tangentX = next.x - prev.x;
-    const tangentY = next.y - prev.y;
-    const magnitude = Math.hypot(tangentX, tangentY) || 1;
-    const t = lengths[index] / perimeter;
-    const wobble = 0.57 * Math.sin(2 * Math.PI * cycles[0] * t + phase) +
-      0.31 * Math.sin(2 * Math.PI * cycles[1] * t + phase * 1.6) +
-      0.12 * Math.sin(2 * Math.PI * cycles[2] * t - phase * 0.7);
-    const offset = amplitude * wobble;
-    return {
-      x: point.x + orientation * tangentY / magnitude * offset,
-      y: point.y - orientation * tangentX / magnitude * offset,
-    };
+  const w = Math.max(2, outlineWidth);
+  const minCut = Math.max(10, w * 2.2);
+  const maxCut = Math.max(24, w * 6.5);
+  const cuts: Point[] = [];
+  const pushJittered = (x: number, y: number, nx: number, ny: number) => {
+    // Mostly outward: border gets chunkier in places, never much thinner.
+    const offset = w * (-0.22 + random() * 0.72);
+    cuts.push({ x: x + nx * offset, y: y + ny * offset });
+  };
+  for (let i = 0; i < points.length; i += 1) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    const length = segmentLength(a, b);
+    if (!length) continue;
+    // Outward normal for this segment (y-down screen coordinates).
+    const nx = -orientation * (b.y - a.y) / length;
+    const ny = orientation * (b.x - a.x) / length;
+    pushJittered(a.x, a.y, nx, ny);
+    let travelled = minCut + random() * (maxCut - minCut);
+    while (travelled < length - minCut * 0.6) {
+      const t = travelled / length;
+      pushJittered(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, nx, ny);
+      travelled += minCut + random() * (maxCut - minCut);
+    }
+  }
+  return cuts.length >= 3 ? cuts : points;
+}
+
+/** Straight-edged SVG polygon; scissor cuts keep sharp corners. */
+export function polygonPath(points: Point[]): string {
+  if (points.length < 3) return "";
+  const fmt = (n: number) => Number(n.toFixed(2));
+  return "M " + points.map((p) => fmt(p.x) + " " + fmt(p.y)).join(" L ") + " Z";
+}
+
+/** Filled paper-cutout shapes placed behind the subject. */
+export function cutoutPathsFromMask(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  outlineWidth: number,
+): string[] {
+  const paper = paperMask(mask, width, height, outlineWidth);
+  const minArea = Math.max(24, outlineWidth * outlineWidth * 3);
+  const result: string[] = [];
+  traceContours(paper, width, height).forEach((loop, index) => {
+    if (Math.abs(polygonArea(loop)) < minArea) return;
+    const simplified = simplifyContour(loop, Math.max(1.5, outlineWidth * 0.3));
+    if (simplified.length < 3) return;
+    const seed = 0x5eed + index * 7919 + loop.length;
+    const path = polygonPath(scissorContour(simplified, outlineWidth, seed));
+    if (path) result.push(path);
   });
+  return result;
 }
 
 export function vectorPathsFromMask(
@@ -258,13 +391,12 @@ export function vectorPathsFromMask(
   style: Exclude<OutlineStyle, "none">,
   outlineWidth: number,
 ): string[] {
-  const contours = traceContours(mask, width, height);
+  if (style === "rough") return cutoutPathsFromMask(mask, width, height, outlineWidth);
   const result: string[] = [];
-  contours.forEach((loop, index) => {
-    const simplified = simplifyContour(loop, style === "clean" ? 1.3 : 1.8);
+  traceContours(mask, width, height).forEach((loop) => {
+    const simplified = simplifyContour(loop, 1.3);
     if (simplified.length < 3) return;
-    const points = style === "rough" ? roughContour(simplified, outlineWidth, index) : simplified;
-    const path = curvePath(points, style === "clean" ? 2.2 : 2.4);
+    const path = curvePath(simplified, 2.2);
     if (path) result.push(path);
   });
   return result;
@@ -283,7 +415,8 @@ export function createOutlinePaths(
   const scale = Math.min(1, 960 / Math.max(displayWidth, displayHeight));
   const width = Math.max(1, Math.round(displayWidth * scale));
   const height = Math.max(1, Math.round(displayHeight * scale));
-  const padding = 2;
+  // Rough cutouts grow beyond the subject, so leave room for the paper edge.
+  const padding = style === "rough" ? Math.ceil(outlineWidth * scale * 1.8) + 4 : 2;
   const canvas = document.createElement("canvas");
   canvas.width = width + padding * 2;
   canvas.height = height + padding * 2;

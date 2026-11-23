@@ -47,7 +47,7 @@ function ImageNode({ element, asset, bindNode, onSelect, onChange }: ImageNodePr
   ]);
 
   const onTransformEnd = (event: Konva.KonvaEventObject<Event>) => {
-    const node = event.target as Konva.Group;
+    const node = event.target as unknown as Konva.Group;
     const width = Math.max(20, element.width * Math.abs(node.scaleX()));
     const height = Math.max(20, element.height * Math.abs(node.scaleY()));
     const rotation = normalizeRotation(node.rotation());
@@ -86,16 +86,32 @@ function ImageNode({ element, asset, bindNode, onSelect, onChange }: ImageNodePr
           scaleY={1 / outline.scale}
         >
           {outline.paths.map((path, index) => (
-            <Path
-              key={index}
-              data={path}
-              fillEnabled={false}
-              stroke={element.outlineColor}
-              strokeWidth={element.outlineWidth * outline.scale * 2}
-              lineCap="round"
-              lineJoin="round"
-              listening={false}
-            />
+            element.outlineStyle === "rough" ? (
+              // Filled paper cutout with a soft drop shadow, like a printed sticker.
+              <Path
+                key={index}
+                data={path}
+                fill={element.outlineColor}
+                strokeEnabled={false}
+                shadowColor="#000000"
+                shadowOpacity={0.45}
+                shadowBlur={18 * outline.scale}
+                shadowOffsetX={3 * outline.scale}
+                shadowOffsetY={6 * outline.scale}
+                listening={false}
+              />
+            ) : (
+              <Path
+                key={index}
+                data={path}
+                fillEnabled={false}
+                stroke={element.outlineColor}
+                strokeWidth={element.outlineWidth * outline.scale * 2}
+                lineCap="round"
+                lineJoin="round"
+                listening={false}
+              />
+            )
           ))}
         </Group>
       )}
