@@ -1,0 +1,155 @@
+/*
+ * Somenail design tokens — v1, follows msalt-studio shared design system v0.2.
+ *
+ * This is the only stylesheet in src/ allowed to contain raw color values
+ * (enforced by src/design/tokens.test.ts).
+ *
+ *   Layer 1  --sn-*        primitives (raw palette). Components never use these.
+ *   Layer 2  --color-* …   shared msalt-studio names (+ a few somenail-only roles).
+ *
+ * Canvas (Konva) colors cannot read CSS variables; they live in src/design/tokens.ts.
+ * Rationale and usage rules: docs/design-system.md
+ */
+
+:root {
+  /* ---------- Primitives: neutral gray (R≈G≈B so the chrome never tints user colors) */
+  --sn-gray-0: #FFFFFF;
+  --sn-gray-25: #F8F8F9;
+  --sn-gray-50: #F0F1F2;
+  --sn-gray-100: #E5E6E8;
+  --sn-gray-200: #D4D6D9;
+  --sn-gray-300: #B6B9BE;
+  --sn-gray-450: #80858C;
+  --sn-gray-500: #646870;
+  --sn-gray-700: #34363B;
+  --sn-gray-900: #161718;
+
+  /* ---------- Primitives: cutting-mat green (action) */
+  --sn-green-50: #E7F3ED;
+  --sn-green-300: #6FC59C;
+  --sn-green-500: #1E8A5E;
+  --sn-green-600: #16744E;
+  --sn-green-700: #0F5E3F;
+
+  /* ---------- Primitives: apricot (brand mark only) */
+  --sn-apricot-300: #F3AD93;
+  --sn-apricot-ink: #201D20;
+
+  /* ---------- Primitives: feedback */
+  --sn-red-50: #FCEDEB;
+  --sn-red-300: #F2948B;
+  --sn-red-600: #BF3329;
+  --sn-amber-50: #FFF6E5;
+  --sn-amber-300: #E8B45A;
+  --sn-amber-700: #8A5A0B;
+
+  /* ---------- Shared: color */
+  --color-bg: var(--sn-gray-50);                 /* workspace "cutting mat" */
+  --color-surface: var(--sn-gray-0);             /* topbar, sidebar */
+  --color-surface-subtle: var(--sn-gray-25);     /* inputs */
+  --color-text: var(--sn-gray-900);
+  --color-text-muted: var(--sn-gray-500);
+  --color-border: var(--sn-gray-100);            /* dividers (decorative) */
+  --color-control-border: var(--sn-gray-450);    /* ≥ 3:1 on surface-subtle */
+  --color-action: var(--sn-green-600);
+  --color-action-hover: var(--sn-green-700);
+  --color-on-action: var(--sn-gray-0);
+  --color-action-wash: var(--sn-green-50);
+  --color-brand: var(--sn-apricot-300);          /* logo mark only — never buttons/selection */
+  --color-on-brand: var(--sn-apricot-ink);
+  --color-focus: var(--sn-green-500);
+
+  --color-status-info-bg: var(--sn-gray-50);
+  --color-status-info-text: var(--sn-gray-700);
+  --color-status-info-border: var(--sn-gray-300);
+  --color-status-success-bg: var(--sn-green-50);
+  --color-status-success-text: var(--sn-green-700);
+  --color-status-success-border: var(--sn-green-300);
+  --color-status-warning-bg: var(--sn-amber-50);
+  --color-status-warning-text: var(--sn-amber-700);
+  --color-status-warning-border: var(--sn-amber-300);
+  --color-status-error-bg: var(--sn-red-50);
+  --color-status-error-text: var(--sn-red-600);
+  --color-status-error-border: var(--sn-red-300);
+
+  /* ---------- Somenail-only color roles */
+  --color-surface-hover: var(--sn-gray-50);
+  --color-surface-pressed: var(--sn-gray-100);
+  --color-text-placeholder: var(--sn-gray-450);
+  --color-mat-line: rgb(22 23 24 / 0.05);
+  --color-mat-line-strong: rgb(22 23 24 / 0.09);
+  --color-swatch-edge: rgb(22 23 24 / 0.18);
+  --color-scrim: rgb(240 241 242 / 0.9);
+
+  /* ---------- Elevation */
+  --shadow-control: 0 1px 2px rgb(22 23 24 / 0.08);
+  --shadow-paper: 0 1px 2px rgb(22 23 24 / 0.08), 0 14px 36px -10px rgb(22 23 24 / 0.28);
+  --shadow-overlay: 0 12px 40px rgb(22 23 24 / 0.22);
+
+  /* ---------- Typography */
+  --font-body: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: var(--font-body);
+  --text-xs: 12px;  --leading-xs: 16px;
+  --text-sm: 13px;  --leading-sm: 18px;
+  --text-md: 14px;  --leading-md: 20px;
+  --text-lg: 16px;  --leading-lg: 22px;
+  --text-xl: 18px;  --leading-xl: 24px;
+  --weight-regular: 450;
+  --weight-medium: 560;
+  --weight-bold: 700;
+  --tracking-tight: -0.01em;
+
+  /* ---------- Space (shared scale, same values as eodiseo --eds-space-*) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+
+  /* ---------- Shape */
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-full: 999px;
+
+  /* ---------- Sizing — density: compact */
+  --control-height: 36px;
+  --control-height-sm: 32px;
+  --control-height-lg: 44px;
+  --swatch-size: 28px;
+  --topbar-height: 56px;
+  --sidebar-width: 320px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+
+  /* ---------- Motion */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---------- Layers */
+  --z-topbar: 10;
+  --z-overlay: 50;
+  --z-toast: 100;
+
+  color-scheme: light;
+}
+
+/* Touch devices: every control reaches the 44px shared minimum. */
+@media (pointer: coarse) {
+  :root {
+    --control-height: 44px;
+    --control-height-sm: 44px;
+    --swatch-size: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

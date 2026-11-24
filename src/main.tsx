@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+import "./design/tokens.css";
+import "./design/base.css";
+import "./design/components.css";
 import "./styles.css";
 
 const root = document.getElementById("root");

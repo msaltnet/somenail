@@ -9,6 +9,7 @@ import {
   type EditorElement, type ImageElement, type ThumbnailDocument,
 } from "../editor/model";
 import { createOutlinePaths } from "../editor/outline";
+import { CANVAS_UI } from "../design/tokens";
 import type { ImageAsset } from "../editor/imageLoader";
 
 type Props = {
@@ -148,6 +149,17 @@ export default function CanvasEditor({
     transformer.getLayer()?.batchDraw();
   }, [selectedId, documentValue.elements, assets]);
 
+  // A white halo keeps the action-colored border visible on any user background.
+  useEffect(() => {
+    transformerRef.current?.findOne(".back")?.setAttrs({
+      shadowColor: CANVAS_UI.selectionHalo,
+      shadowBlur: CANVAS_UI.haloWidth / scale,
+      shadowOpacity: 1,
+      shadowForStrokeEnabled: true,
+    });
+    transformerRef.current?.getLayer()?.batchDraw();
+  }, [scale]);
+
   const bindNode = (id: string, node: Konva.Node | null) => {
     if (node) nodes.current.set(id, node);
     else nodes.current.delete(id);
@@ -245,11 +257,20 @@ export default function CanvasEditor({
                   ? ["middle-left", "middle-right"]
                   : ["top-left", "top-right", "bottom-left", "bottom-right"]
               }
-              borderStroke="#e99c81"
-              anchorFill="#ffffff"
-              anchorStroke="#e99c81"
-              anchorSize={12}
-              anchorCornerRadius={4}
+              // Sizes are divided by the view scale so handles keep one on-screen size.
+              borderStroke={CANVAS_UI.selection}
+              borderStrokeWidth={CANVAS_UI.borderWidth / scale}
+              anchorFill={CANVAS_UI.anchorFill}
+              anchorStroke={CANVAS_UI.anchorStroke}
+              anchorStrokeWidth={1.5 / scale}
+              anchorSize={CANVAS_UI.anchorSize / scale}
+              anchorCornerRadius={CANVAS_UI.anchorRadius / scale}
+              rotateAnchorOffset={28 / scale}
+              anchorStyleFunc={(anchor) => {
+                anchor.shadowColor(CANVAS_UI.anchorShadow);
+                anchor.shadowBlur(3 / scale);
+                anchor.shadowOpacity(1);
+              }}
               boundBoxFunc={(oldBox, newBox) => {
                 if (Math.abs(newBox.width) < 30 || Math.abs(newBox.height) < 18) {
                   return oldBox;
