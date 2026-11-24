@@ -73,7 +73,8 @@
 | `--text-xs`…`--text-xl` | 12 · 13 · 14 · 16 · 18px | 캡션 · 라벨 · 본문/버튼 · 패널 제목 · 워드마크 |
 | `--weight-regular` / `-medium` / `-bold` | 450 / 560 / 700 | 세 가지만 |
 | `--control-height-sm` / `-lg` | 32 / 44px (터치 44 / 44) | 작은 버튼 / 추가 버튼 |
-| `--swatch-size` | 28px (터치 36) | |
+| `--swatch-size` | 28px (터치 36) | 보이는 크기. 터치 기기에서는 누르는 영역을 `--target-min`까지 넓힌다 |
+| `--target-min` | 44px | 공용 §4 터치 대상 하한. 보이는 크기보다 작은 컨트롤의 누르는 영역 |
 | `--topbar-height` · `--sidebar-width` | 56 · 320px (≤1050px에서 296) | |
 | `--duration-fast` / `-base`, `--ease-out` | 120 / 180ms | 동작 줄이기 시 0 |
 | `--z-topbar` · `--z-overlay` · `--z-toast` | 10 · 50 · 100 | 다른 값 금지 |
@@ -99,7 +100,7 @@ Konva는 CSS 변수를 읽지 못하므로 상수로 둔다.
 | `Button` | `Button.tsx` | 변형 `primary`(화면에 하나: PNG 다운로드) · `secondary` · `ghost` · `danger`. 크기 `sm`/`md`/`lg`. `busy` + `busyLabel`로 진행 상태, `pressed`로 `aria-pressed` 토글(굵게) |
 | `IconButton` | `Button.tsx` | `label` 필수(→ `aria-label`, `title`). 선택 해제, 회전 초기화, 삭제, 알림 닫기 |
 | `Field` | `Field.tsx` | 라벨 + 컨트롤 + 도움말/오류. 슬라이더는 라벨 오른쪽에 현재 값 |
-| `SegmentedControl` | `Field.tsx` | `fieldset` + `legend` + 네이티브 라디오. 정렬, 테두리 스타일 |
+| `SegmentedControl` | `Field.tsx` | `fieldset` + `legend` + 네이티브 라디오. 정렬, 테두리 스타일. 선택된 칸은 굵게 토글·견본과 같은 선택 표현(동작색 옅은 배경 + 동작색 테두리 + 굵은 글자). 라디오가 컨트롤 높이 전체를 덮어 누르는 영역이 `--control-height`가 된다 |
 | `ColorField` | `ColorField.tsx` | **모든 색 입력을 하나로**: 색 상자(네이티브 피커) + 편집 가능한 HEX + 선택적 견본 5열. 유효한 HEX는 입력 중 바로 반영하고, 틀린 값은 blur 때 되돌리며 **필드 아래에** 오류 표시 |
 | `Icon` | `Icon.tsx` | 24 viewBox, 선 1.75, `currentColor`. download, image, text, background, trash, forward, backward, reset, close, lock |
 
@@ -130,6 +131,10 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.segm
 - 모바일(≤ 800px): 캔버스 → **선택한 요소** → 추가 → 배경 → 안내. 캔버스를 만진 직후 바로 아래에서 속성을 바꾼다.
 - 패널은 그림자 없이 구분선으로 나눈다. 번호(01·02·03)를 붙이지 않는다 — 순서가 정해진 과정이 아니다.
 - 글자와 컨트롤은 왼쪽 정렬, 캔버스 아래 힌트만 가운데 정렬.
+- 출력 크기·보기 배율 줄과 캔버스 힌트는 **캔버스(종이) 폭에 맞춘다**. 보기 배율은 작업 공간의 실제 안쪽 폭(토큰 여백 제외)으로 계산한다.
+- 키보드 힌트(`Delete` 삭제 · `Esc` 선택 해제)는 터치 기기(`pointer: coarse`)에서 숨긴다.
+- 한글은 어절 단위로 줄을 바꾼다(`word-break: keep-all`). "됩/니다"처럼 음절 중간에서 끊지 않는다.
+- 레이어 버튼(뒤로 보내기 · 앞으로 가져오기 · 삭제)은 296px 사이드바에서도 라벨이 잘리지 않도록 좁은 안쪽 여백을 쓴다.
 
 ---
 
@@ -140,6 +145,7 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.segm
 | 상황 | 문구 |
 | --- | --- |
 | 주요 동작 / 진행 중 | PNG 다운로드 / PNG 만드는 중… |
+| 다운로드 시작 (`role="status"`, 화면에는 보이지 않음) | PNG 다운로드를 시작했어요. |
 | 추가 | 이미지 · 텍스트 |
 | 빈 캔버스 | 이미지나 텍스트를 추가해 시작하세요. |
 | 요소가 있을 때 | `Delete` 삭제 · `Esc` 선택 해제 |
@@ -158,6 +164,7 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.segm
 3. 캔버스 선택색(`tokens.ts`)이 `tokens.css`의 값과 같고, 배경 프리셋과 겹치지 않는다.
 4. `tokens.css` 밖의 CSS와 `src/ui/*.tsx`에 HEX·`rgb()`·`hsl()`이 없다.
 5. `font-size`, `font-weight`, `border-radius`, `z-index`는 토큰(`var(--…)`)으로만 지정한다.
+6. 포커스 링은 `2px solid var(--color-focus)`, `outline-offset`은 2px(작업 공간 안쪽 표시만 -2px)로 공용 §4와 같다.
 
 ### 변경 절차
 
@@ -176,6 +183,7 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.segm
 | 캔버스 선택 표시 이중 외곽선 | 적용 |
 | Pretendard 직접 호스팅 | 적용 (UI 전용, 캔버스 출력 글꼴은 변경 없음) |
 | 일관성 검사 테스트 | 적용 |
+| 터치 대상 44px(세그먼트·견본), 포커스 오프셋 2px, 진행·완료 `role="status"` | 적용 (v1.1) |
 | 다크 모드 | 미적용 (후속 검토) |
 | 캔버스 출력 글꼴에 Pretendard 추가 | 범위 밖 — 출력 PNG가 달라지므로 별도 Idea |
 | 스크린 리더 실제 낭독, Safari·Edge 확인 | 미확인 |
