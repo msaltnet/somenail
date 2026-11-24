@@ -54,9 +54,10 @@ export default function App() {
   const [scale, setScale] = useState(0.65);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const workspaceRef = useRef<HTMLElement>(null);
+  const canvasAreaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const selectionLayerRef = useRef<Konva.Layer>(null);
   const assetStoreRef = useRef(new Map<string, ImageAsset>());
@@ -65,10 +66,13 @@ export default function App() {
   const hasElements = documentValue.elements.length > 0;
 
   useEffect(() => {
-    const host = workspaceRef.current;
+    const host = canvasAreaRef.current;
     if (!host) return;
     const resize = () => {
-      const available = Math.max(150, host.clientWidth - 80);
+      // Fit the paper inside the canvas area's content box (its padding comes from tokens).
+      const style = getComputedStyle(host);
+      const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const available = Math.max(150, host.clientWidth - padding);
       setScale(Math.min(1, available / CANVAS_WIDTH));
     };
     const observer = new ResizeObserver(resize);
@@ -196,6 +200,8 @@ export default function App() {
     if (busy) return;
     setBusy(true);
     setNotice(null);
+    setStatus("PNG 만드는 중…");
+    let saved = false;
     try {
       const stage = stageRef.current;
       if (!stage) throw new Error("편집 캔버스를 찾지 못했어요. 페이지를 새로고침해 주세요.");
@@ -215,12 +221,14 @@ export default function App() {
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      saved = true;
     } catch (error) {
       setNotice(getErrorMessage(error));
     } finally {
       selectionLayerRef.current?.show();
       stageRef.current?.draw();
       setBusy(false);
+      setStatus(saved ? "PNG 다운로드를 시작했어요." : "");
     }
   };
 
@@ -456,7 +464,6 @@ export default function App() {
 
         <main
           className={"workspace" + (isDragging ? " is-dragging" : "")}
-          ref={workspaceRef}
           aria-label="캔버스"
           onDragOver={(event) => {
             event.preventDefault();
@@ -467,33 +474,36 @@ export default function App() {
           }}
           onDrop={onImageDrop}
         >
-          <div className="workspace-bar">
-            <span className="tabular">{CANVAS_WIDTH} × {CANVAS_HEIGHT} px</span>
-            <span className="tabular">보기 {Math.round(scale * 100)}%</span>
-          </div>
-
-          <div className="workspace-content">
-            <div className="canvas-paper">
-              <CanvasEditor
-                documentValue={documentValue}
-                assets={assetStoreRef.current}
-                selectedId={selectedId}
-                scale={scale}
-                stageRef={stageRef}
-                selectionLayerRef={selectionLayerRef}
-                onSelect={setSelectedId}
-                onChange={updateElement}
-              />
+          <div className="workspace-content" ref={canvasAreaRef}>
+            <div className="canvas-column" style={{ width: Math.round(CANVAS_WIDTH * scale) }}>
+              <div className="workspace-bar">
+                <span className="tabular">{CANVAS_WIDTH} × {CANVAS_HEIGHT} px</span>
+                <span className="tabular">보기 {Math.round(scale * 100)}%</span>
+              </div>
+              <div className="canvas-paper">
+                <CanvasEditor
+                  documentValue={documentValue}
+                  assets={assetStoreRef.current}
+                  selectedId={selectedId}
+                  scale={scale}
+                  stageRef={stageRef}
+                  selectionLayerRef={selectionLayerRef}
+                  onSelect={setSelectedId}
+                  onChange={updateElement}
+                />
+              </div>
+              {hasElements ? (
+                <p className="canvas-hint canvas-hint--keys"><kbd>Delete</kbd> 삭제 · <kbd>Esc</kbd> 선택 해제</p>
+              ) : (
+                <p className="canvas-hint">이미지나 텍스트를 추가해 시작하세요.</p>
+              )}
             </div>
-            <p className="canvas-hint">
-              {hasElements
-                ? <><kbd>Delete</kbd> 삭제 · <kbd>Esc</kbd> 선택 해제</>
-                : "이미지나 텍스트를 추가해 시작하세요."}
-            </p>
             {isDragging && <div className="drop-indicator">놓으면 이미지를 추가합니다</div>}
           </div>
         </main>
       </div>
+
+      <p className="visually-hidden" role="status">{status}</p>
 
       {notice && (
         <div className="notice notice--error notice--toast" role="alert">

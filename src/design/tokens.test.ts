@@ -126,4 +126,17 @@ describe("stylesheets outside tokens.css", () => {
     });
     expect(offenders).toEqual([]);
   });
+
+  it("draw every focus ring as 2px solid focus color with a 2px offset (shared §4)", () => {
+    const offenders = sheets.flatMap((path) => {
+      const text = readFileSync(path, "utf8");
+      const outlines = [...text.matchAll(/outline:\s*([^;]+);/g)]
+        .filter(([, value]) => value.includes("--color-focus"))
+        .filter(([, value]) => value.trim() !== "2px solid var(--color-focus)");
+      const offsets = [...text.matchAll(/outline-offset:\s*([^;]+);/g)]
+        .filter(([, value]) => !["2px", "-2px"].includes(value.trim()));
+      return [...outlines, ...offsets].map(([hit]) => `${relative(SRC, path)}: ${hit}`);
+    });
+    expect(offenders).toEqual([]);
+  });
 });

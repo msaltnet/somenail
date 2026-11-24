@@ -120,6 +120,7 @@
   --control-height-sm: 32px;
   --control-height-lg: 44px;
   --swatch-size: 28px;
+  --target-min: 44px;              /* shared touch-target floor (§4) */
   --topbar-height: 56px;
   --sidebar-width: 320px;
   --icon-sm: 16px;

@@ -11,6 +11,8 @@ body {
   font-weight: var(--weight-regular);
   color: var(--color-text);
   background: var(--color-bg);
+  word-break: keep-all;            /* Korean: break between words, not syllables */
+  overflow-wrap: anywhere;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
