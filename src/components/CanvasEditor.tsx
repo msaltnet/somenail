@@ -11,6 +11,7 @@ import {
 import { createOutlinePaths } from "../editor/outline";
 import { CANVAS_UI } from "../design/tokens";
 import type { ImageAsset } from "../editor/imageLoader";
+import { drawsBold, ensureFontLoaded } from "../editor/fonts";
 
 type Props = {
   documentValue: ThumbnailDocument;
@@ -160,6 +161,32 @@ export default function CanvasEditor({
     transformerRef.current?.getLayer()?.batchDraw();
   }, [scale]);
 
+  // Web font subsets load on demand. Once the glyphs arrive, re-measure the text
+  // (Konva only measures on attribute changes) and redraw so wrapping and the selection box are right.
+  const fontKey = documentValue.elements
+    .map((element) => (element.type === "text" ? `${element.id}|${element.fontFamily}|${element.bold}|${element.text}` : ""))
+    .join("\n");
+  useEffect(() => {
+    let cancelled = false;
+    const texts = documentValue.elements.filter((element) => element.type === "text");
+    void Promise.all(texts.map((element) => ensureFontLoaded(element.fontFamily, drawsBold(element.fontFamily, element.bold), element.text))).then(() => {
+      if (cancelled) return;
+      for (const element of texts) {
+        const node = nodes.current.get(element.id) as Konva.Text | undefined;
+        if (!node) continue;
+        // Toggling an attribute is Konva's public way to trigger a re-measure.
+        node.fontFamily("");
+        node.fontFamily(element.fontFamily);
+      }
+      transformerRef.current?.forceUpdate();
+      stageRef.current?.batchDraw();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fontKey captures every text input that matters
+  }, [fontKey]);
+
   const bindNode = (id: string, node: Konva.Node | null) => {
     if (node) nodes.current.set(id, node);
     else nodes.current.delete(id);
@@ -227,7 +254,7 @@ export default function CanvasEditor({
                   text={element.text}
                   fontSize={element.fontSize}
                   fontFamily={element.fontFamily}
-                  fontStyle={element.bold ? "bold" : "normal"}
+                  fontStyle={drawsBold(element.fontFamily, element.bold) ? "bold" : "normal"}
                   fill={element.color}
                   align={element.align}
                   wrap="word"
