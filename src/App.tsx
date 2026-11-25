@@ -10,6 +10,7 @@ import {
   placeImage,
   normalizeRotation,
   type EditorElement,
+  type ImageElement,
   type TextElement,
   type ThumbnailDocument,
 } from "./editor/model";
@@ -17,26 +18,34 @@ import { BACKGROUND_PRESETS, TEXT_PRESETS } from "./editor/palette";
 import { loadImageFile, releaseImage, type ImageAsset } from "./editor/imageLoader";
 import { Button, IconButton } from "./ui/Button";
 import { ColorField } from "./ui/ColorField";
-import { Field, SegmentedControl } from "./ui/Field";
+import { Field, SegmentedControl, type SegmentedOption } from "./ui/Field";
+import { NumberField } from "./ui/NumberField";
 import { Icon } from "./ui/Icon";
 
 const FONTS = [
-  { label: "기본 고딕", value: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif" },
+  { label: "고딕", value: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif" },
   { label: "명조", value: "Georgia, Batang, serif" },
   { label: "모노", value: "Consolas, monospace" },
 ];
 
-const ALIGN_OPTIONS = [
-  ["left", "왼쪽"],
-  ["center", "가운데"],
-  ["right", "오른쪽"],
-] as const;
+const FONT_OPTIONS: ReadonlyArray<SegmentedOption<string>> = FONTS.map((font) => ({
+  value: font.value,
+  label: font.label,
+  // The UI font stays last so the Hangul label never falls back to empty boxes.
+  labelStyle: { fontFamily: `${font.value}, var(--font-body)` },
+}));
 
-const OUTLINE_OPTIONS = [
-  ["none", "없음"],
-  ["clean", "깔끔하게"],
-  ["rough", "손그림 컷아웃"],
-] as const;
+const ALIGN_OPTIONS: ReadonlyArray<SegmentedOption<TextElement["align"]>> = [
+  { value: "left", label: "왼쪽 정렬", icon: "align-left" },
+  { value: "center", label: "가운데 정렬", icon: "align-center" },
+  { value: "right", label: "오른쪽 정렬", icon: "align-right" },
+];
+
+const OUTLINE_OPTIONS: ReadonlyArray<SegmentedOption<ImageElement["outlineStyle"]>> = [
+  { value: "none", label: "테두리 없음", icon: "outline-none" },
+  { value: "clean", label: "깔끔한 테두리", icon: "outline-clean" },
+  { value: "rough", label: "종이 컷아웃 테두리", icon: "outline-cutout" },
+];
 
 const isTypingTarget = (target: EventTarget | null) => {
   return target instanceof HTMLElement &&
@@ -62,7 +71,10 @@ export default function App() {
   const selectionLayerRef = useRef<Konva.Layer>(null);
   const assetStoreRef = useRef(new Map<string, ImageAsset>());
 
-  const selected = documentValue.elements.find((element) => element.id === selectedId) ?? null;
+  const selectedIndex = documentValue.elements.findIndex((element) => element.id === selectedId);
+  const selected = selectedIndex >= 0 ? documentValue.elements[selectedIndex] : null;
+  const isBottom = selectedIndex === 0;
+  const isTop = selectedIndex === documentValue.elements.length - 1;
   const hasElements = documentValue.elements.length > 0;
 
   useEffect(() => {
@@ -252,6 +264,21 @@ export default function App() {
 
       <div className="studio">
         <aside className="sidebar" aria-label="편집 도구">
+          <section className="panel panel--background" aria-labelledby="panel-bg-title">
+            <div className="panel__header">
+              <h2 className="panel__title" id="panel-bg-title">배경</h2>
+            </div>
+            <ColorField
+              id="background-color"
+              label="배경색"
+              subject="배경색"
+              hideLabel
+              value={documentValue.backgroundColor}
+              presets={BACKGROUND_PRESETS}
+              onChange={changeBackground}
+            />
+          </section>
+
           <section className="panel panel--add" aria-labelledby="panel-add-title">
             <div className="panel__header">
               <h2 className="panel__title" id="panel-add-title">추가</h2>
@@ -284,14 +311,18 @@ export default function App() {
                 <h2 className="panel__title" id="panel-selected-title">
                   {selected.type === "text" ? "텍스트" : "이미지"}
                 </h2>
-                <div className="panel__actions">
+                <div className="panel__actions" role="toolbar" aria-label="레이어">
+                  <IconButton icon="layer-backward" label="뒤로 보내기" iconSize="md" disabled={isBottom} onClick={() => shiftSelected(-1)} />
+                  <IconButton icon="layer-forward" label="앞으로 가져오기" iconSize="md" disabled={isTop} onClick={() => shiftSelected(1)} />
+                  <IconButton icon="trash" variant="danger" label="삭제 (Delete)" onClick={removeSelected} />
+                  <span className="panel__actions-divider" aria-hidden="true" />
                   <IconButton icon="close" label="선택 해제 (Esc)" onClick={() => setSelectedId(null)} />
                 </div>
               </div>
 
               {selected.type === "text" ? (
                 <div className="panel__body">
-                  <Field label="내용" htmlFor="text-content">
+                  <Field label="텍스트 내용" htmlFor="text-content" hideLabel>
                     <textarea
                       id="text-content"
                       className="input"
@@ -300,59 +331,52 @@ export default function App() {
                       onChange={(event) => updateElement(selected.id, { text: event.target.value })}
                     />
                   </Field>
-                  <div className="field-row">
-                    <Field label="크기" htmlFor="font-size">
-                      <div className="input-addon">
-                        <input
-                          id="font-size"
-                          className="input input--number"
-                          type="number"
-                          min={12}
-                          max={300}
-                          value={selected.fontSize}
-                          onChange={(event) => {
-                            const value = Number(event.target.value);
-                            if (Number.isFinite(value) && value >= 12 && value <= 300) {
-                              updateElement(selected.id, { fontSize: value });
-                            }
-                          }}
-                        />
-                        <span className="input-addon__suffix" aria-hidden="true">px</span>
-                      </div>
-                    </Field>
-                    <Field label="글꼴" htmlFor="font-family">
-                      <select
-                        id="font-family"
-                        className="input"
-                        value={selected.fontFamily}
-                        onChange={(event) => updateElement(selected.id, { fontFamily: event.target.value })}
-                      >
-                        {FONTS.map((font) => <option value={font.value} key={font.label}>{font.label}</option>)}
-                      </select>
-                    </Field>
-                  </div>
-                  <div className="align-row">
+                  <div className="control-row">
                     <SegmentedControl
-                      legend="정렬"
-                      name="text-align"
-                      value={selected.align}
-                      options={ALIGN_OPTIONS}
-                      onChange={(align) => updateElement(selected.id, { align })}
+                      legend="글꼴"
+                      hideLegend
+                      name="font-family"
+                      className="control-row__grow"
+                      value={selected.fontFamily}
+                      options={FONT_OPTIONS}
+                      onChange={(fontFamily) => updateElement(selected.id, { fontFamily })}
                     />
                     <Button
-                      className="bold-toggle"
+                      className="btn--square"
                       pressed={selected.bold}
                       aria-label="굵게"
                       title="굵게"
                       onClick={() => updateElement(selected.id, { bold: !selected.bold })}
                     >
-                      <span aria-hidden="true" className="bold-toggle__glyph">B</span>
+                      <Icon name="bold" size="md" />
                     </Button>
+                  </div>
+                  <div className="control-row">
+                    <NumberField
+                      id="font-size"
+                      label="글자 크기"
+                      value={selected.fontSize}
+                      min={12}
+                      max={300}
+                      step={4}
+                      unit="px"
+                      stepper
+                      onChange={(fontSize) => updateElement(selected.id, { fontSize })}
+                    />
+                    <SegmentedControl
+                      legend="정렬"
+                      hideLegend
+                      name="text-align"
+                      value={selected.align}
+                      options={ALIGN_OPTIONS}
+                      onChange={(align) => updateElement(selected.id, { align })}
+                    />
                   </div>
                   <ColorField
                     id="text-color"
                     label="글자색"
                     subject="글자색"
+                    hideLabel
                     value={selected.color}
                     presets={TEXT_PRESETS}
                     onChange={(color) => updateElement(selected.id, { color })}
@@ -360,47 +384,37 @@ export default function App() {
                 </div>
               ) : (
                 <div className="panel__body">
-                  <Field label="회전" htmlFor="image-rotation" hint="캔버스의 회전 핸들을 끌어도 됩니다.">
-                    <div className="rotation-controls">
-                      <input
-                        type="range"
-                        min={-180}
-                        max={180}
-                        step={1}
-                        aria-label="회전 각도 슬라이더"
-                        value={selected.rotation}
-                        onChange={(event) => updateElement(selected.id, { rotation: Number(event.target.value) })}
-                      />
-                      <div className="input-addon rotation-number">
-                        <input
-                          id="image-rotation"
-                          className="input input--number"
-                          type="number"
-                          min={-180}
-                          max={180}
-                          step={1}
-                          value={selected.rotation}
-                          aria-describedby="image-rotation-hint"
-                          onChange={(event) => {
-                            const angle = Number(event.target.value);
-                            if (Number.isFinite(angle)) {
-                              updateElement(selected.id, { rotation: normalizeRotation(angle) });
-                            }
-                          }}
-                        />
-                        <span className="input-addon__suffix" aria-hidden="true">°</span>
-                      </div>
-                      <IconButton
-                        icon="reset"
-                        label="회전 초기화"
-                        disabled={selected.rotation === 0}
-                        onClick={() => updateElement(selected.id, { rotation: 0 })}
-                      />
-                    </div>
-                  </Field>
+                  <div className="slider-row">
+                    <span className="slider-row__icon" title="회전"><Icon name="angle" size="md" /></span>
+                    <input
+                      type="range"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      aria-label="회전 각도"
+                      value={selected.rotation}
+                      onChange={(event) => updateElement(selected.id, { rotation: Number(event.target.value) })}
+                    />
+                    <NumberField
+                      id="image-rotation"
+                      label="회전 각도"
+                      value={selected.rotation}
+                      min={-180}
+                      max={180}
+                      unit="°"
+                      onChange={(rotation) => updateElement(selected.id, { rotation: normalizeRotation(rotation) })}
+                    />
+                    <IconButton
+                      icon="reset"
+                      label="회전 초기화"
+                      disabled={selected.rotation === 0}
+                      onClick={() => updateElement(selected.id, { rotation: 0 })}
+                    />
+                  </div>
                   <hr className="panel__divider" />
                   <SegmentedControl
                     legend="테두리"
+                    hideLegend
                     name="outline-style"
                     value={selected.outlineStyle}
                     options={OUTLINE_OPTIONS}
@@ -408,53 +422,40 @@ export default function App() {
                   />
                   {selected.outlineStyle !== "none" && (
                     <>
-                      <Field label="두께" htmlFor="outline-width" value={`${selected.outlineWidth}px`}>
+                      <div className="slider-row">
+                        <span className="slider-row__icon" title="두께"><Icon name="stroke-width" size="md" /></span>
                         <input
                           id="outline-width"
                           type="range"
                           min={3}
                           max={30}
                           step={1}
+                          aria-label="테두리 두께"
+                          aria-valuetext={`${selected.outlineWidth}px`}
                           value={selected.outlineWidth}
                           onChange={(event) => updateElement(selected.id, { outlineWidth: Number(event.target.value) })}
                         />
-                      </Field>
+                        <output className="slider-row__value" htmlFor="outline-width">{selected.outlineWidth}px</output>
+                      </div>
                       <ColorField
                         id="outline-color"
                         label="테두리 색"
                         subject="테두리 색"
+                        hideLabel
                         value={selected.outlineColor}
                         onChange={(outlineColor) => updateElement(selected.id, { outlineColor })}
                       />
-                      <p className="field__hint">
-                        투명 배경 PNG·WebP는 피사체 윤곽을 따라 그려집니다. JPG는 사진 사각형을 따라 그려집니다.
-                      </p>
+                      {assetStoreRef.current.get(selected.assetId)?.hasTransparency === false && (
+                        <p className="field__hint">
+                          배경이 있는 사진은 사각형을 따라 그려져요. 피사체만 두르려면 투명 배경 PNG·WebP를 쓰세요.
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
               )}
-
-              <div className="layer-actions" role="group" aria-label="레이어">
-                <Button size="sm" icon="backward" onClick={() => shiftSelected(-1)}>뒤로 보내기</Button>
-                <Button size="sm" icon="forward" onClick={() => shiftSelected(1)}>앞으로 가져오기</Button>
-                <IconButton icon="trash" variant="danger" label="삭제 (Delete)" onClick={removeSelected} />
-              </div>
             </section>
           )}
-
-          <section className="panel panel--background" aria-labelledby="panel-bg-title">
-            <div className="panel__header">
-              <h2 className="panel__title" id="panel-bg-title">배경</h2>
-            </div>
-            <ColorField
-              id="background-color"
-              label="배경색"
-              subject="배경색"
-              value={documentValue.backgroundColor}
-              presets={BACKGROUND_PRESETS}
-              onChange={changeBackground}
-            />
-          </section>
 
           <p className="sidebar-note">
             <Icon name="lock" />

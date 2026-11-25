@@ -11,6 +11,8 @@ type Props = {
   value: string;
   onChange: (hex: string) => void;
   presets?: ReadonlyArray<ColorPreset>;
+  /** Keep the label for assistive tech only, when the panel title already names the color. */
+  hideLabel?: boolean;
 };
 
 const HEX_ERROR = "#RRGGBB 형식의 6자리 HEX로 입력하세요.";
@@ -19,7 +21,7 @@ const HEX_ERROR = "#RRGGBB 형식의 6자리 HEX로 입력하세요.";
  * One color input for every color in the app: picker well + editable HEX + optional swatches.
  * Valid HEX applies while typing; an invalid value is reverted on blur with an inline error.
  */
-export function ColorField({ id, label, subject, value, onChange, presets }: Props) {
+export function ColorField({ id, label, subject, value, onChange, presets, hideLabel }: Props) {
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string | null>(null);
   const current = value.toUpperCase();
@@ -51,7 +53,7 @@ export function ColorField({ id, label, subject, value, onChange, presets }: Pro
 
   return (
     <div className="field color-field">
-      <label className="field__label" htmlFor={id}>{label}</label>
+      <label className={hideLabel ? "visually-hidden" : "field__label"} htmlFor={id}>{label} HEX</label>
       <div className="color-field__row">
         <span className="color-field__well" style={{ backgroundColor: current }}>
           <input

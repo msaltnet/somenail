@@ -27,6 +27,8 @@
 .btn--lg { min-height: var(--control-height-lg); padding: 0 var(--space-5); }
 .btn--block { width: 100%; }
 .btn--icon { padding: 0; width: var(--control-height-sm); min-height: var(--control-height-sm); }
+/* Icon-only toggle at full control height, e.g. bold. */
+.btn--square { padding: 0; width: var(--control-height); }
 
 .btn--primary { background: var(--color-action); color: var(--color-on-action); }
 .btn--primary:hover:not(:disabled) { background: var(--color-action-hover); }
@@ -87,10 +89,65 @@ select.input { cursor: pointer; }
 .input-addon .input { padding-right: var(--space-5); }
 .input-addon__suffix { position: absolute; right: var(--space-3); color: var(--color-text-muted); pointer-events: none; }
 
-input[type="range"] {
-  width: 100%; min-width: 0; height: var(--control-height);
-  margin: 0; accent-color: var(--color-action); cursor: pointer; background: transparent;
+/* ---------- Number field: drawn by the system, never the browser spinner */
+.number-field {
+  display: flex; align-items: stretch;
+  min-height: var(--control-height); min-width: 0;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+  overflow: hidden;                /* step buttons follow the rounded corners */
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
+.number-field:hover { border-color: var(--color-text-muted); }
+.number-field:focus-within { border-color: var(--color-focus); }
+.number-field:has(input:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.number-field__box {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; justify-content: center; gap: var(--space-1);
+  padding: 0 var(--space-2);
+  cursor: text;
+}
+.number-field__input {
+  min-width: 1ch; padding: 0;
+  field-sizing: content;           /* hug the digits so the unit sits right next to them */
+  border: 0; background: transparent; outline: none;
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+@supports not (field-sizing: content) { .number-field__input { width: 4ch; } }
+.number-field__unit { color: var(--color-text-muted); }
+.number-field__step {
+  flex-shrink: 0; width: var(--control-height-sm);
+  display: grid; place-items: center;
+  padding: 0; border: 0; background: transparent;
+  color: var(--color-text-muted);
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.number-field__step:hover:not(:disabled) { background: var(--color-surface-hover); color: var(--color-text); }
+.number-field__step:active:not(:disabled) { background: var(--color-surface-pressed); }
+.number-field__step:disabled { cursor: not-allowed; opacity: 0.45; }
+
+/* ---------- Range: system track and thumb, same in every browser */
+input[type="range"] {
+  appearance: none; -webkit-appearance: none;
+  width: 100%; min-width: 0; height: var(--control-height);
+  margin: 0; background: transparent; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--radius-full); background: var(--color-track); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: var(--radius-full); background: var(--color-track); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; margin-top: -6px;
+  border: 2px solid var(--color-surface); border-radius: var(--radius-full);
+  background: var(--color-action); box-shadow: var(--shadow-control), 0 0 0 1px var(--color-action);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px;
+  border: 2px solid var(--color-surface); border-radius: var(--radius-full);
+  background: var(--color-action); box-shadow: var(--shadow-control), 0 0 0 1px var(--color-action);
+}
+input[type="range"]:hover::-webkit-slider-thumb { background: var(--color-action-hover); }
+input[type="range"]:hover::-moz-range-thumb { background: var(--color-action-hover); }
 
 /* ---------- Segmented control: native radios in a fieldset */
 .segmented {
@@ -113,6 +170,8 @@ input[type="range"] {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
+.segmented--icons { grid-auto-columns: minmax(calc(var(--control-height) - 6px), 1fr); }
+.segmented--icons .segmented__option span { padding: 0 var(--space-1); }
 .segmented__option:hover span { color: var(--color-text); }
 .segmented__option input:checked + span {
   background: var(--color-action-wash);
@@ -173,7 +232,8 @@ input[type="range"] {
   font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tight);
 }
-.panel__actions { margin-left: auto; display: flex; gap: var(--space-1); }
+.panel__actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.panel__actions-divider { width: 1px; height: var(--icon-md); margin: 0 var(--space-1); background: var(--color-border); }
 .panel__body { display: flex; flex-direction: column; gap: var(--space-3); }
 .panel__divider { border: 0; border-top: 1px solid var(--color-border); margin: var(--space-1) 0; }
 
