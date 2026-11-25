@@ -79,6 +79,8 @@
   --color-mat-line: rgb(22 23 24 / 0.05);
   --color-mat-line-strong: rgb(22 23 24 / 0.09);
   --color-swatch-edge: rgb(22 23 24 / 0.18);
+  --color-track: var(--sn-gray-200);             /* range track (thumb carries the contrast) */
+  --color-scrollbar: var(--sn-gray-300);         /* thin scrollbar thumb */
   --color-scrim: rgb(240 241 242 / 0.9);
 
   /* ---------- Elevation */

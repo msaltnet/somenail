@@ -22,6 +22,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 h1, h2, h3, p { margin: 0; }
 
+/* One thin scrollbar everywhere, instead of each OS's default. */
+* { scrollbar-width: thin; scrollbar-color: var(--color-scrollbar) transparent; }
+
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

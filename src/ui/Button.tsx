@@ -55,11 +55,13 @@ export function Button({
 
 type IconButtonProps = Omit<Props, "icon" | "children" | "size" | "block"> & {
   icon: IconName;
-  /** Required: icon-only buttons need an accessible name. */
+  /** Required: icon-only buttons need an accessible name. It is also the tooltip. */
   label: string;
+  /** "md" for icons with inner detail (e.g. layer order) that need 20px to read. */
+  iconSize?: "sm" | "md";
 };
 
-export function IconButton({ icon, label, variant = "ghost", className, ...rest }: IconButtonProps) {
+export function IconButton({ icon, label, iconSize = "sm", variant = "ghost", className, ...rest }: IconButtonProps) {
   return (
     <Button
       variant={variant}
@@ -69,7 +71,7 @@ export function IconButton({ icon, label, variant = "ghost", className, ...rest 
       title={label}
       {...rest}
     >
-      <Icon name={icon} />
+      <Icon name={icon} size={iconSize} />
     </Button>
   );
 }

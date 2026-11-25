@@ -37,7 +37,10 @@
 
 .sidebar {
   display: flex; flex-direction: column;
-  padding: var(--space-5) var(--space-5);
+  /* The scrollbar lane is always reserved, so showing or hiding controls never shifts the layout.
+     The right padding gives back roughly the lane's width to keep both sides visually even. */
+  scrollbar-gutter: stable;
+  padding: var(--space-5) var(--space-3) var(--space-5) var(--space-5);
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   overflow-y: auto;
@@ -45,21 +48,21 @@
 .add-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
 .panel--selected { gap: var(--space-4); }
 
-.align-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; }
-.bold-toggle { width: var(--control-height); padding: 0; }
-.bold-toggle__glyph { font-weight: var(--weight-bold); font-size: var(--text-lg); }
+/* A row of controls that share one line: the --grow item takes the remaining width. */
+.control-row { display: flex; align-items: center; gap: var(--space-2); }
+.control-row > * { flex-shrink: 0; }
+.control-row > .control-row__grow,
+.control-row > .number-field { flex: 1 1 0; }
 
-.rotation-controls { display: flex; align-items: center; gap: var(--space-2); }
-.rotation-controls > input[type="range"] { flex: 1; }
-.rotation-number { width: 84px; flex-shrink: 0; }
-
-.layer-actions {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--space-1);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+/* Leading icon · slider · value or number field · optional action. */
+.slider-row { display: flex; align-items: center; gap: var(--space-2); }
+.slider-row > input[type="range"] { flex: 1; }
+.slider-row__icon { display: grid; place-items: center; color: var(--color-text-muted); flex-shrink: 0; }
+.slider-row .number-field { width: 76px; flex-shrink: 0; }
+.slider-row__value {
+  min-width: 4ch; text-align: right; flex-shrink: 0;
+  font-size: var(--text-sm); color: var(--color-text-muted); font-variant-numeric: tabular-nums;
 }
-/* Two labelled buttons share ~100px each at the 296px sidebar: tighten padding so labels never clip. */
-.layer-actions .btn:not(.btn--icon) { padding: 0 var(--space-2); gap: var(--space-1); }
 
 .sidebar-note {
   margin-top: auto;
@@ -140,10 +143,10 @@
   .workspace { order: 1; }
   .sidebar { order: 2; flex: 1; overflow: visible; border-right: 0; border-top: 1px solid var(--color-border); padding: var(--space-5) var(--space-4); }
   .panel--selected { order: 1; }
-  .panel--add { order: 2; }
-  .panel--background { order: 3; }
+  .panel--background { order: 2; }
+  .panel--add { order: 3; }
   .sidebar-note { order: 4; margin-top: 0; }
   .panel--selected { border-top: 0; padding-top: 0; }
-  .sidebar:has(.panel--selected) .panel--add { border-top: 1px solid var(--color-border); padding-top: var(--space-5); }
+  .sidebar:has(.panel--selected) .panel--background { border-top: 1px solid var(--color-border); padding-top: var(--space-5); }
   .workspace-content { padding: var(--space-4) var(--space-4) var(--space-5); gap: var(--space-3); }
 }
