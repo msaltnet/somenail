@@ -1,7 +1,7 @@
-# Somenail 디자인 시스템 v1.2
+# Somenail 디자인 시스템 v1.3
 
-- **따르는 공용 규약:** msalt-studio 공용 디자인 시스템 **v0.3** (`msalt-studio/docs/MSALT-STUDIO-DESIGN-SYSTEM.md`)
-- **작성일:** 2026-11-24 · **v1.2:** 2026-11-25 (간결한 컨트롤)
+- **따르는 공용 규약:** msalt-studio 공용 디자인 시스템 **v0.4** (`msalt-studio/docs/MSALT-STUDIO-DESIGN-SYSTEM.md`)
+- **작성일:** 2026-11-24 · **v1.2:** 2026-11-25 (간결한 컨트롤) · **v1.3:** 2026-11-25 (글꼴 드롭다운·캔버스 웹폰트·테두리 아이콘·휠 조정)
 - **관련 문서:** [디자인 개선안](design-review.md) · [PRD](PRD.md) · [TRD](TRD.md)
 - **코드:** `src/design/` (토큰·기본 스타일·컴포넌트 CSS·검사), `src/ui/` (React 컴포넌트)
 
@@ -16,7 +16,7 @@
 | 표면 은유 | **커팅 매트 위의 종이** — 작업 공간은 격자 매트, 캔버스는 그 위에 놓인 종이 | §1.1 |
 | 동작색 | 매트 그린 `#16744E` | §2 |
 | 브랜드 표식 | 살구색 `#F3AD93` — 한 모서리를 자른 "s" 종이 태그 로고에만 | §2 |
-| 글꼴 | Pretendard Variable, 동적 서브셋 직접 호스팅 | §4 글꼴 로딩 |
+| 글꼴 | UI: Pretendard Variable, 동적 서브셋 직접 호스팅. 캔버스: 기본 3종 + Google Fonts 16종 직접 호스팅(§2.4) | §4 글꼴 로딩 |
 | 밀도 | **compact** (36px 컨트롤, 터치 기기 44px) | §5 |
 | 모드 | 라이트만. 다크 모드는 후속 검토 | §3.4 |
 
@@ -79,7 +79,7 @@
 | `--target-min` | 44px | 공용 §4 터치 대상 하한. 보이는 크기보다 작은 컨트롤의 누르는 영역 |
 | `--topbar-height` · `--sidebar-width` | 56 · 320px (≤1050px에서 296) | |
 | `--duration-fast` / `-base`, `--ease-out` | 120 / 180ms | 동작 줄이기 시 0 |
-| `--z-topbar` · `--z-overlay` · `--z-toast` | 10 · 50 · 100 | 다른 값 금지 |
+| `--z-topbar` · `--z-popover` · `--z-overlay` · `--z-toast` | 10 · 40 · 50 · 100 | 다른 값 금지. popover는 드롭다운 목록 |
 
 ### 2.3 캔버스 토큰 (`src/design/tokens.ts`)
 
@@ -90,6 +90,24 @@ Konva는 CSS 변수를 읽지 못하므로 상수로 둔다.
 - 굵기와 핸들 크기를 보기 배율로 나눠 **화면에서 항상 같은 크기**로 보이게 한다.
 - 선택 레이어는 PNG 내보내기 때 숨긴다(기존 동작).
 - 사용자 색 프리셋(`src/editor/palette.ts`)은 UI 토큰이 아니다. 선택색이 프리셋과 같아지지 않는지 테스트로 확인한다.
+
+### 2.4 캔버스 글꼴 (`src/editor/fonts.ts`, `fontFaces.ts`)
+
+사용자가 고르는 출력물 글꼴이다. UI 토큰이 아니며, 썸네일 제목에 쓰기 좋은 **서로 다른 인상**을 기준으로 골랐다.
+
+| 묶음 | 글꼴 | 굵게 |
+| --- | --- | --- |
+| 기본 | 고딕 · 명조 · 모노 (시스템 글꼴 스택, v1과 같음. 새 텍스트의 기본값은 그대로 "고딕") | ○ |
+| 고딕 | 본고딕 Noto Sans KR · 도현 Do Hyeon · 주아 Jua · 동글 Dongle | 본고딕·동글만 |
+| 명조 | 본명조 Noto Serif KR · 고운바탕 Gowun Batang · 송명 Song Myung | 본명조·고운바탕만 |
+| 제목용 | 검은고딕 Black Han Sans · 가석 Gasoek One · 베이글 Bagel Fat One · 구기 Gugi · 연성 Yeon Sung | — |
+| 손글씨 | 나눔손글씨 펜 Nanum Pen Script · 나눔손글씨 붓 Nanum Brush Script · 개구 Gaegu · 동해독도 East Sea Dokdo | 개구만 |
+
+- **직접 호스팅.** npm `@fontsource/*`(OFL-1.1)로 번들한다. Google 서버에 요청하지 않는다(공용 §4 글꼴 로딩, TRD 서드파티 요청 없음).
+- **필요한 글자만 내려받는다.** 한글 글꼴은 `unicode-range`로 100여 조각으로 나뉘어 있고, 브라우저는 화면에 쓰인 글자가 든 조각만 받는다. 캔버스는 이 다운로드를 스스로 일으키지 않으므로 글자·글꼴·굵기가 바뀔 때마다 `document.fonts.load()`로 받은 뒤 Konva 텍스트를 다시 재고 그린다. PNG 다운로드 직전에도 모든 텍스트에 대해 같은 확인을 한다.
+- **굵기가 하나뿐인 글꼴은 굵게를 끈다.** 브라우저가 가짜 굵기를 덧칠하면 획이 뭉개진다. 해당 글꼴을 고르면 굵게 버튼은 비활성("이 글꼴은 굵기가 하나예요")이고, 다시 굵기가 있는 글꼴로 바꾸면 사용자가 켜 둔 굵게가 돌아온다.
+- **글꼴 이름 미리보기 배율.** 동글·손글씨처럼 같은 크기에서 글자 면이 작은 글꼴은 드롭다운에서만 `previewScale`(1.15~1.6)로 키워 이름이 읽히게 한다. 캔버스 출력에는 영향이 없다.
+- 목록·`@font-face` 가져오기·굵기 표시가 서로 맞는지 `fonts.test.ts`로 확인한다.
 
 ---
 
@@ -102,18 +120,20 @@ Konva는 CSS 변수를 읽지 못하므로 상수로 둔다.
 | `Button` | `Button.tsx` | 변형 `primary`(화면에 하나: PNG 다운로드) · `secondary` · `ghost` · `danger`. 크기 `sm`/`md`/`lg`. `busy` + `busyLabel`로 진행 상태, `pressed`로 `aria-pressed` 토글. `btn--square`는 아이콘만 있는 컨트롤 높이 정사각 토글(굵게) |
 | `IconButton` | `Button.tsx` | `label` 필수(→ `aria-label`, `title` 툴팁). `iconSize="md"`는 안쪽 형태가 있는 아이콘(레이어 순서)용. 레이어 순서, 삭제, 선택 해제, 회전 초기화, 알림 닫기 |
 | `Field` | `Field.tsx` | 라벨 + 컨트롤 + 도움말/오류. `hideLabel`이면 라벨은 보조기기에만 남긴다 |
-| `SegmentedControl` | `Field.tsx` | `fieldset` + `legend` + 네이티브 라디오. 옵션은 `{ value, label, icon?, labelStyle? }`. **아이콘 옵션은 아이콘만** 보이고 `label`은 라디오 이름과 툴팁이 된다. `hideLegend`로 범례를 숨긴다. 글꼴(글자를 그 글꼴로 표시), 정렬·테두리(아이콘). 라디오가 컨트롤 높이 전체를 덮어 누르는 영역이 `--control-height`가 된다 |
-| `NumberField` | `NumberField.tsx` | **브라우저 스피너 없는 정수 입력.** `type="text"` + `role="spinbutton"`, 단위는 숫자 바로 옆(`field-sizing: content`). `stepper`면 양옆에 − / + 버튼(글자 크기). 범위 안의 값은 입력 중 반영하고 blur 때 범위로 자르거나 되돌린다. ↑/↓(Shift ×10). 규칙은 `number.ts`에 있고 단위 테스트한다 |
+| `SegmentedControl` | `Field.tsx` | `fieldset` + `legend` + 네이티브 라디오. 옵션은 `{ value, label, icon?, labelStyle? }`. **아이콘 옵션은 아이콘만** 보이고 `label`은 라디오 이름과 툴팁이 된다. `hideLegend`로 범례를 숨긴다(정렬). 테두리는 범례를 보인다(§3.1). 라디오가 컨트롤 높이 전체를 덮어 누르는 영역이 `--control-height`가 된다 |
+| `Select` | `Select.tsx` | **시스템이 그린 드롭다운.** 선택지가 5개 이상일 때. ARIA select-only combobox: 트리거 `button[role=combobox]`에 포커스가 머물고 목록은 `aria-activedescendant`로 따라간다. 트리거에 현재 값, 오른쪽에 chevron. 목록은 `body`로 포털해 `position: fixed`, 아래 공간이 모자라면 위로 연다. 옵션은 `{ value, label, group?, labelStyle? }` — `group`이 같으면 제목 아래 묶고, `labelStyle`로 **글꼴 이름을 그 글꼴로** 보여 준다(트리거도 같음). ↑↓ · Home/End · PageUp/Down · Enter/Space · Esc(앱의 Esc 동작보다 먼저 소비) · Tab(선택하고 이동) · 첫 글자 찾기. 밖을 누르면 닫는다. 이동 규칙은 `listNavigation.ts`에서 단위 테스트 |
+| `NumberField` | `NumberField.tsx` | **브라우저 스피너 없는 정수 입력.** `type="text"` + `role="spinbutton"`, 단위는 숫자 바로 옆(`field-sizing: content`). `stepper`면 양옆에 − / + 버튼(글자 크기). 범위 안의 값은 입력 중 반영하고 blur 때 범위로 자르거나 되돌린다. ↑/↓(Shift ×10). **입력에 포커스가 있을 때 필드 위 마우스 휠**로 한 단계씩 증감(위로 = 증가, Shift ×10, 트랙패드는 40px마다 한 단계). 이때 사이드바는 스크롤되지 않는다. v1.2에서 `type="number"`를 바꾸며 사라졌던 브라우저 동작을 시스템이 다시 제공한다 규칙은 `number.ts`에 있고 단위 테스트한다 |
 | `ColorField` | `ColorField.tsx` | **모든 색 입력을 하나로**: 색 상자(네이티브 피커) + 편집 가능한 HEX + 선택적 견본 5열. `hideLabel`로 라벨을 숨긴다(패널 제목이 이미 색을 말할 때). 유효한 HEX는 입력 중 바로 반영하고, 틀린 값은 blur 때 되돌리며 **필드 아래에** 오류 표시 |
-| `Icon` | `Icon.tsx` | 24 viewBox, 선 1.75, `currentColor`. 선 경로와 채운 면을 섞을 수 있다. download, image, text, trash, reset, close, lock, minus, plus, layer-forward/backward(채운 사각형 = 선택한 요소), align-left/center/right, bold, angle, stroke-width, outline-none/clean/cutout(같은 하트 피사체에 테두리 없음·매끄러운 테두리·직선 가위 컷) |
+| `Icon` | `Icon.tsx` | 24 viewBox, 선 1.75, `currentColor`. 선 경로와 채운 면을 섞을 수 있다. download, image, text, trash, reset, close, lock, minus, plus, check, chevron-down, layer-forward/backward(채운 사각형 = 선택한 요소), align-left/center/right, bold, angle, stroke-width, outline-none/clean/cutout(**테두리 선 모양**: 없음 = 금지 기호 ⊘, 깔끔한 = 직선, 컷아웃 = 지그재그선) |
 
-CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.number-field`, `.segmented`, `.color-field`, `.swatch`, `.panel`, `.notice`, `.icon`. 슬라이더(`input[type=range]`)와 스크롤바도 여기서 그린다.
+CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.number-field`, `.select`, `.segmented`, `.color-field`, `.swatch`, `.panel`, `.notice`, `.icon`. 슬라이더(`input[type=range]`)와 스크롤바도 여기서 그린다.
 
 ### 3.1 간결한 컨트롤 원칙 (v1.2)
 
 - **맥락이 말해주는 라벨은 보이지 않게 한다.** "배경" 패널의 "배경색", 텍스트 패널의 "내용·크기·글꼴·글자색"처럼 패널 제목·단위(px, °)·컨트롤 모양으로 이미 드러나는 라벨은 `hideLabel`/`hideLegend`로 보조기기에만 남긴다.
-- **관습이 있는 선택은 아이콘만.** 정렬, 레이어 순서, 테두리 스타일, 굵게, 삭제, 닫기. 아이콘만 쓰는 컨트롤은 접근 이름과 `title` 툴팁이 반드시 있다.
-- **브라우저 기본 외관을 쓰지 않는다.** 선택지가 2~4개면 드롭다운 대신 세그먼트(글꼴). 숫자는 `NumberField`, 슬라이더와 스크롤바는 시스템 스타일. 색 피커 팝업만 네이티브(색 상자는 시스템이 그린다).
+- **관습이 있는 선택은 아이콘만.** 정렬, 레이어 순서, 굵게, 삭제, 닫기. 아이콘만 쓰는 컨트롤은 접근 이름과 `title` 툴팁이 반드시 있다.
+- **관습이 약한 아이콘 그룹은 범례를 보인다.** 테두리 스타일은 아이콘이 결과를 묘사(선 모양)할 뿐 무엇을 고르는지는 말하지 않으므로 "테두리" 범례를 보인다(v1.3). v1.2의 "같은 하트에 테두리만 바꾼" 아이콘은 16px에서 차이가 읽히지 않아 버렸다.
+- **브라우저 기본 외관을 쓰지 않는다.** 선택지가 2~4개면 세그먼트, 5개 이상이면 시스템이 그린 `Select`(글꼴). 숫자는 `NumberField`, 슬라이더와 스크롤바는 시스템 스타일. 색 피커 팝업만 네이티브(색 상자는 시스템이 그린다).
 - **같은 상태 변화로 배치가 흔들리지 않게 한다.** 사이드바는 `scrollbar-gutter: stable`로 스크롤바 자리를 항상 비워 둔다. 컨트롤이 나타나도 폭이 바뀌지 않는다.
 - **도움말은 동작을 바꿀 때만.** 회전 핸들·윤곽 방식 설명처럼 결과를 보면 아는 안내는 두지 않는다.
 
@@ -133,7 +153,7 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.numb
 │ ────────────────── │       Delete 삭제 · Esc 선택 해제            │
 │ T 텍스트 ⧉ ⧉ 🗑 │ × │                                            │
 │ [내용             ] │                                            │
-│ [고딕|명조|모노] [B] │                                            │
+│ [고딕         ⌄] [B] │                                            │
 │ [− 88 px +] [≡|≡|≡] │                                            │
 │ [■][#FFFFFF]  ●●●●● │                                            │
 │ 🔒 브라우저 안에서만 │                                            │
@@ -142,7 +162,7 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.numb
 
 - 사이드바 순서: **배경 → 추가 → 선택한 요소 → 안내**. 항상 있는 패널을 위에, 선택할 때만 나타나는 패널을 아래에 둔다. 선택 패널이 나타나고 사라져도 위쪽 패널은 움직이지 않는다.
 - 선택한 요소 패널의 머리줄: 아이콘 · 제목 · **뒤로 보내기 · 앞으로 가져오기 · 삭제 | 선택 해제**(모두 아이콘). 맨 뒤/맨 앞이면 해당 버튼은 비활성.
-- 이미지 패널: [각도 아이콘] 슬라이더 [0 °] [초기화] → 테두리 세그먼트(아이콘 3개) → 테두리가 있을 때만 [두께 아이콘] 슬라이더 12px · 색.
+- 이미지 패널: [각도 아이콘] 슬라이더 [0 °] [초기화] → "테두리" 범례 + 세그먼트(⊘ · ─ · 지그재그) → 테두리가 있을 때만 [두께 아이콘] 슬라이더 12px · 색.
 - 모바일(≤ 800px): 캔버스 → **선택한 요소** → 배경 → 추가 → 안내. 캔버스를 만진 직후 바로 아래에서 속성을 바꾼다.
 - 패널은 그림자 없이 구분선으로 나눈다. 번호(01·02·03)를 붙이지 않는다 — 순서가 정해진 과정이 아니다.
 - 글자와 컨트롤은 왼쪽 정렬, 캔버스 아래 힌트만 가운데 정렬.
@@ -166,6 +186,8 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.numb
 | 요소가 있을 때 | `Delete` 삭제 · `Esc` 선택 해제 |
 | 레이어 (아이콘 툴팁) | 뒤로 보내기 · 앞으로 가져오기 · 삭제 (Delete) · 선택 해제 (Esc) |
 | 정렬·테두리 (아이콘 툴팁) | 왼쪽/가운데/오른쪽 정렬 · 테두리 없음 · 깔끔한 테두리 · 종이 컷아웃 테두리 |
+| 굵게 (툴팁) | 굵게 · 굵기가 하나뿐인 글꼴에서 "이 글꼴은 굵기가 하나예요"(비활성) |
+| 글꼴 묶음 | 기본 · 고딕 · 명조 · 제목용 · 손글씨 |
 | HEX 오류 | #RRGGBB 형식의 6자리 HEX로 입력하세요. |
 | 개인정보 안내 | 이미지는 이 브라우저 안에서만 처리돼요. 새로고침하면 작업이 사라집니다. |
 
@@ -201,6 +223,8 @@ CSS 클래스는 `src/design/components.css`: `.btn`, `.field`, `.input`, `.numb
 | 일관성 검사 테스트 | 적용 |
 | 터치 대상 44px(세그먼트·견본), 포커스 오프셋 2px, 진행·완료 `role="status"` | 적용 (v1.1) |
 | 간결한 컨트롤: 아이콘 세그먼트·레이어 아이콘, 숨긴 라벨, `NumberField`, 시스템 슬라이더·스크롤바, 스크롤바 자리 고정, 배경 패널 위로 | 적용 (v1.2) |
+| 글꼴 `Select`(그 글꼴로 이름 표시, 묶음), 캔버스 Google Fonts 16종 직접 호스팅, 단일 굵기 글꼴 가짜 굵기 방지, 숫자 필드 휠 조정, 테두리 범례 + 선 모양 아이콘 | 적용 (v1.3) |
 | 다크 모드 | 미적용 (후속 검토) |
-| 캔버스 출력 글꼴에 Pretendard 추가 | 범위 밖 — 출력 PNG가 달라지므로 별도 Idea |
+| 기본 글꼴을 웹폰트로 교체 | 범위 밖 — 시스템 스택 "고딕"은 OS마다 출력이 다르지만, 바꾸면 기존 작업의 PNG가 달라지므로 별도 Idea |
+| 글꼴 미리보기(목록에서 가리키면 캔버스에 임시 적용) | 미적용 |
 | 스크린 리더 실제 낭독, Safari·Edge 확인 | 미확인 |

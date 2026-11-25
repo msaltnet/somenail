@@ -135,6 +135,7 @@
 
   /* ---------- Layers */
   --z-topbar: 10;
+  --z-popover: 40;               /* dropdown lists */
   --z-overlay: 50;
   --z-toast: 100;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clamp, commitDraft, parseWholeNumber } from "./number";
+import { clamp, commitDraft, parseWholeNumber, wheelStep } from "./number";
 
 describe("number field helpers", () => {
   it("parses whole numbers, including signs and surrounding spaces", () => {
@@ -23,5 +23,13 @@ describe("number field helpers", () => {
     expect(commitDraft("1", 88, 12, 300)).toBe(12);
     expect(commitDraft("", 88, 12, 300)).toBe(88);
     expect(commitDraft("120", 88, 12, 300)).toBe(120);
+  });
+
+  it("turns vertical wheel movement into one step, ignoring sideways swipes", () => {
+    expect(wheelStep(0, -100, 4, false)).toBe(4);
+    expect(wheelStep(0, 3, 4, false)).toBe(-4);
+    expect(wheelStep(0, -100, 4, true)).toBe(40);
+    expect(wheelStep(50, 10, 4, false)).toBe(0);
+    expect(wheelStep(0, 0, 4, false)).toBe(0);
   });
 });

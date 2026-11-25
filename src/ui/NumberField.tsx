@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
-import { clamp, commitDraft, parseWholeNumber } from "./number";
+import { clamp, commitDraft, parseWholeNumber, wheelStep } from "./number";
 
 type Props = {
   id: string;
@@ -20,13 +20,47 @@ type Props = {
 /**
  * Whole-number input drawn by the design system (no browser spinner).
  * Valid in-range values apply while typing; on blur the draft is clamped or reverted.
+ * While the input has focus, the mouse wheel over the field steps the value (like the native number input).
  */
 export function NumberField({ id, label, value, min, max, step = 1, unit, stepper = false, onChange }: Props) {
   const [draft, setDraft] = useState(String(value));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // The wheel listener is attached once; read the latest props through a ref.
+  const latest = useRef({ value, min, max, step, onChange });
+  latest.current = { value, min, max, step, onChange };
 
   useEffect(() => {
     setDraft(String(value));
   }, [value]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    let pixels = 0;
+    const onWheel = (event: WheelEvent) => {
+      if (document.activeElement !== inputRef.current) return;
+      // React's onWheel is passive; a native listener can keep the sidebar from scrolling.
+      event.preventDefault();
+      // Shift + wheel arrives as horizontal scroll in most browsers.
+      const shifted = event.shiftKey && event.deltaY === 0;
+      const deltaX = shifted ? 0 : event.deltaX;
+      let deltaY = shifted ? event.deltaX : event.deltaY;
+      // Pixel-mode wheels (trackpads) send many small deltas: one step per 40px.
+      if (event.deltaMode === WheelEvent.DOM_DELTA_PIXEL) {
+        pixels += deltaY;
+        if (Math.abs(pixels) < 40) return;
+        deltaY = pixels;
+        pixels = 0;
+      }
+      const { value: current, min: low, max: high, step: unit, onChange: emit } = latest.current;
+      const change = wheelStep(deltaX, deltaY, unit, event.shiftKey);
+      const next = clamp(current + change, low, high);
+      if (change !== 0 && next !== current) emit(next);
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, []);
 
   const set = (next: number) => {
     const clamped = clamp(next, min, max);
@@ -41,7 +75,7 @@ export function NumberField({ id, label, value, min, max, step = 1, unit, steppe
   };
 
   return (
-    <div className={"number-field" + (stepper ? " number-field--stepper" : "")}>
+    <div ref={rootRef} className={"number-field" + (stepper ? " number-field--stepper" : "")}>
       {stepper && (
         <button
           type="button"
@@ -58,6 +92,7 @@ export function NumberField({ id, label, value, min, max, step = 1, unit, steppe
       <label className="number-field__box">
         <span className="visually-hidden">{label}</span>
         <input
+          ref={inputRef}
           id={id}
           className="number-field__input"
           type="text"

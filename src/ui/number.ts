@@ -17,3 +17,12 @@ export function commitDraft(draft: string, current: number, min: number, max: nu
   const parsed = parseWholeNumber(draft);
   return parsed === null ? current : clamp(parsed, min, max);
 }
+
+/**
+ * Change for one wheel notch over a focused number field: wheel up increases, Shift ×10.
+ * Returns 0 for horizontal or zero movement so trackpad side-swipes never change the value.
+ */
+export function wheelStep(deltaX: number, deltaY: number, step: number, fast: boolean): number {
+  if (deltaY === 0 || Math.abs(deltaX) > Math.abs(deltaY)) return 0;
+  return (deltaY < 0 ? step : -step) * (fast ? 10 : 1);
+}

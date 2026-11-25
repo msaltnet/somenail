@@ -19,20 +19,19 @@ import { loadImageFile, releaseImage, type ImageAsset } from "./editor/imageLoad
 import { Button, IconButton } from "./ui/Button";
 import { ColorField } from "./ui/ColorField";
 import { Field, SegmentedControl, type SegmentedOption } from "./ui/Field";
+import { Select, type SelectOption } from "./ui/Select";
+import { DEFAULT_FONT, FONTS, FONT_CATEGORY_LABELS, drawsBold, ensureFontLoaded, findFont, previewFontFamily } from "./editor/fonts";
 import { NumberField } from "./ui/NumberField";
 import { Icon } from "./ui/Icon";
 
-const FONTS = [
-  { label: "고딕", value: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif" },
-  { label: "명조", value: "Georgia, Batang, serif" },
-  { label: "모노", value: "Consolas, monospace" },
-];
-
-const FONT_OPTIONS: ReadonlyArray<SegmentedOption<string>> = FONTS.map((font) => ({
+const FONT_OPTIONS: ReadonlyArray<SelectOption<string>> = FONTS.map((font) => ({
   value: font.value,
   label: font.label,
-  // The UI font stays last so the Hangul label never falls back to empty boxes.
-  labelStyle: { fontFamily: `${font.value}, var(--font-body)` },
+  group: FONT_CATEGORY_LABELS[font.category],
+  labelStyle: {
+    fontFamily: previewFontFamily(font.value),
+    ["--preview-scale" as string]: font.previewScale ?? 1,
+  },
 }));
 
 const ALIGN_OPTIONS: ReadonlyArray<SegmentedOption<TextElement["align"]>> = [
@@ -126,7 +125,7 @@ export default function App() {
       bold: true,
       color: documentValue.backgroundColor === "#FFFFFF" ? "#111827" : "#FFFFFF",
       align: "left",
-      fontFamily: FONTS[0].value,
+      fontFamily: DEFAULT_FONT.value,
     };
     setDocumentValue((previous) => ({ ...previous, elements: [...previous.elements, element] }));
     setSelectedId(element.id);
@@ -217,6 +216,13 @@ export default function App() {
     try {
       const stage = stageRef.current;
       if (!stage) throw new Error("편집 캔버스를 찾지 못했어요. 페이지를 새로고침해 주세요.");
+      await Promise.all(
+        documentValue.elements.map((element) =>
+          element.type === "text"
+            ? ensureFontLoaded(element.fontFamily, drawsBold(element.fontFamily, element.bold), element.text)
+            : null,
+        ),
+      );
       await document.fonts.ready;
       // Selection handles live on their own layer, outside exported content.
       selectionLayerRef.current?.hide();
@@ -332,10 +338,9 @@ export default function App() {
                     />
                   </Field>
                   <div className="control-row">
-                    <SegmentedControl
-                      legend="글꼴"
-                      hideLegend
-                      name="font-family"
+                    <Select
+                      id="font-family"
+                      label="글꼴"
                       className="control-row__grow"
                       value={selected.fontFamily}
                       options={FONT_OPTIONS}
@@ -343,9 +348,10 @@ export default function App() {
                     />
                     <Button
                       className="btn--square"
-                      pressed={selected.bold}
+                      pressed={drawsBold(selected.fontFamily, selected.bold)}
+                      disabled={findFont(selected.fontFamily)?.hasBold === false}
                       aria-label="굵게"
-                      title="굵게"
+                      title={findFont(selected.fontFamily)?.hasBold === false ? "이 글꼴은 굵기가 하나예요" : "굵게"}
                       onClick={() => updateElement(selected.id, { bold: !selected.bold })}
                     >
                       <Icon name="bold" size="md" />
@@ -414,7 +420,6 @@ export default function App() {
                   <hr className="panel__divider" />
                   <SegmentedControl
                     legend="테두리"
-                    hideLegend
                     name="outline-style"
                     value={selected.outlineStyle}
                     options={OUTLINE_OPTIONS}
