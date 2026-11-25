@@ -48,11 +48,11 @@
 .btn--danger { color: var(--color-status-error-text); }
 .btn--danger:hover:not(:disabled) { background: var(--color-status-error-bg); }
 
-/* Toggle (aria-pressed): pressed state shown by fill + border, not color alone. */
-.btn--toggle[aria-pressed="true"] {
-  background: var(--color-action-wash);
-  border-color: var(--color-action);
-  color: var(--color-action-hover);
+/* Toggle (aria-pressed): pressed state is a fill + text color; the border stays the control's own. */
+.btn--toggle[aria-pressed="true"],
+.btn--toggle[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--color-selected);
+  color: var(--color-on-selected);
 }
 
 /* ---------- Field */
@@ -171,7 +171,7 @@ select.input { cursor: pointer; }
   cursor: pointer;
 }
 .select__option.is-active { background: var(--color-surface-hover); }
-.select__option[aria-selected="true"] { color: var(--color-action-hover); }
+.select__option[aria-selected="true"] { background: var(--color-selected); color: var(--color-on-selected); }
 .select__option .icon { margin-left: auto; flex-shrink: 0; }
 .select__option-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: calc(var(--text-xl) * var(--preview-scale, 1)); line-height: var(--leading-xl); }
 
@@ -221,11 +221,11 @@ input[type="range"]:hover::-moz-range-thumb { background: var(--color-action-hov
 .segmented--icons { grid-auto-columns: minmax(calc(var(--control-height) - 6px), 1fr); }
 .segmented--icons .segmented__option span { padding: 0 var(--space-1); }
 .segmented__option:hover span { color: var(--color-text); }
+/* Selected: fill only. The group already has a border, so a second ring would double it. */
 .segmented__option input:checked + span {
-  background: var(--color-action-wash);
-  color: var(--color-action-hover);
+  background: var(--color-selected);
+  color: var(--color-on-selected);
   font-weight: var(--weight-bold);
-  box-shadow: inset 0 0 0 1px var(--color-action);
 }
 .segmented__option input:focus-visible + span { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 

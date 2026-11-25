@@ -26,6 +26,7 @@
 
   /* ---------- Primitives: cutting-mat green (action) */
   --sn-green-50: #E7F3ED;
+  --sn-green-100: #D2EADD;
   --sn-green-300: #6FC59C;
   --sn-green-500: #1E8A5E;
   --sn-green-600: #16744E;
@@ -55,6 +56,8 @@
   --color-action-hover: var(--sn-green-700);
   --color-on-action: var(--sn-gray-0);
   --color-action-wash: var(--sn-green-50);
+  --color-selected: var(--sn-green-100);         /* selected option fill: segmented, toggle, list */
+  --color-on-selected: var(--sn-green-700);
   --color-brand: var(--sn-apricot-300);          /* logo mark only — never buttons/selection */
   --color-on-brand: var(--sn-apricot-ink);
   --color-focus: var(--sn-green-500);

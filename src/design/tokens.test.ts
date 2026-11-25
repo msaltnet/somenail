@@ -73,6 +73,7 @@ describe("design tokens", () => {
       ["--color-on-action", "--color-action"],
       ["--color-on-action", "--color-action-hover"],
       ["--color-text", "--color-action-wash"],
+      ["--color-on-selected", "--color-selected"],
       ["--color-on-brand", "--color-brand"],
       ...["info", "success", "warning", "error"].map((s) => [`--color-status-${s}-text`, `--color-status-${s}-bg`]),
       ["--color-status-error-text", "--color-surface"],

@@ -2,10 +2,11 @@
  * Fonts the user can pick for canvas text.
  *
  * `value` is the CSS font stack stored on the text element and handed to Konva as-is,
- * so it must not contain CSS variables. Google Fonts are self-hosted through
- * @fontsource (OFL-1.1); see `fontFaces.ts` for the @font-face imports.
+ * so it must not contain CSS variables. Every face is a self-hosted web font (OFL-1.1),
+ * so a PNG looks the same on every OS: Pretendard comes from the `pretendard` package
+ * (imported in `main.tsx`, shared with the UI), the rest from @fontsource (`fontFaces.ts`).
  */
-export type FontCategory = "basic" | "sans" | "serif" | "display" | "handwriting";
+export type FontCategory = "sans" | "serif" | "display" | "handwriting";
 
 export type FontOption = {
   /** Korean name shown in the picker, rendered in the font itself. */
@@ -19,40 +20,48 @@ export type FontOption = {
 };
 
 export const FONT_CATEGORY_LABELS: Record<FontCategory, string> = {
-  basic: "기본",
   sans: "고딕",
   serif: "명조",
   display: "제목용",
   handwriting: "손글씨",
 };
 
-const google = (family: string, fallback: "sans-serif" | "serif" | "cursive") => `'${family}', ${fallback}`;
+const webFont = (family: string, fallback: "sans-serif" | "serif" | "cursive") => `'${family}', ${fallback}`;
 
 export const FONTS: readonly FontOption[] = [
-  // System stacks kept from v1 so existing text keeps its look.
-  { label: "고딕", value: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif", hasBold: true, category: "basic" },
-  { label: "명조", value: "Georgia, Batang, serif", hasBold: true, category: "basic" },
-  { label: "모노", value: "Consolas, monospace", hasBold: true, category: "basic" },
+  { label: "프리텐다드", value: webFont("Pretendard Variable", "sans-serif"), hasBold: true, category: "sans" },
+  { label: "본고딕", value: webFont("Noto Sans KR", "sans-serif"), hasBold: true, category: "sans" },
+  { label: "나눔고딕", value: webFont("Nanum Gothic", "sans-serif"), hasBold: true, category: "sans" },
+  { label: "IBM 플렉스", value: webFont("IBM Plex Sans KR", "sans-serif"), hasBold: true, category: "sans" },
+  { label: "고운돋움", value: webFont("Gowun Dodum", "sans-serif"), hasBold: false, category: "sans" },
+  { label: "도현", value: webFont("Do Hyeon", "sans-serif"), hasBold: false, category: "sans" },
+  { label: "주아", value: webFont("Jua", "sans-serif"), hasBold: false, category: "sans" },
+  { label: "동글", value: webFont("Dongle", "sans-serif"), hasBold: true, category: "sans", previewScale: 1.6 },
 
-  { label: "본고딕", value: google("Noto Sans KR", "sans-serif"), hasBold: true, category: "sans" },
-  { label: "도현", value: google("Do Hyeon", "sans-serif"), hasBold: false, category: "sans" },
-  { label: "주아", value: google("Jua", "sans-serif"), hasBold: false, category: "sans" },
-  { label: "동글", value: google("Dongle", "sans-serif"), hasBold: true, category: "sans", previewScale: 1.6 },
+  { label: "본명조", value: webFont("Noto Serif KR", "serif"), hasBold: true, category: "serif" },
+  { label: "나눔명조", value: webFont("Nanum Myeongjo", "serif"), hasBold: true, category: "serif" },
+  { label: "함렛", value: webFont("Hahmlet", "serif"), hasBold: true, category: "serif" },
+  { label: "고운바탕", value: webFont("Gowun Batang", "serif"), hasBold: true, category: "serif" },
+  { label: "송명", value: webFont("Song Myung", "serif"), hasBold: false, category: "serif" },
 
-  { label: "본명조", value: google("Noto Serif KR", "serif"), hasBold: true, category: "serif" },
-  { label: "고운바탕", value: google("Gowun Batang", "serif"), hasBold: true, category: "serif" },
-  { label: "송명", value: google("Song Myung", "serif"), hasBold: false, category: "serif" },
+  { label: "검은고딕", value: webFont("Black Han Sans", "sans-serif"), hasBold: false, category: "display" },
+  { label: "가석", value: webFont("Gasoek One", "sans-serif"), hasBold: false, category: "display" },
+  { label: "베이글", value: webFont("Bagel Fat One", "sans-serif"), hasBold: false, category: "display" },
+  { label: "구기", value: webFont("Gugi", "sans-serif"), hasBold: false, category: "display" },
+  { label: "연성", value: webFont("Yeon Sung", "sans-serif"), hasBold: false, category: "display" },
+  { label: "스타일리시", value: webFont("Stylish", "sans-serif"), hasBold: false, category: "display" },
+  { label: "흑백사진", value: webFont("Black And White Picture", "sans-serif"), hasBold: false, category: "display", previewScale: 1.2 },
+  { label: "모이라이", value: webFont("Moirai One", "sans-serif"), hasBold: false, category: "display" },
 
-  { label: "검은고딕", value: google("Black Han Sans", "sans-serif"), hasBold: false, category: "display" },
-  { label: "가석", value: google("Gasoek One", "sans-serif"), hasBold: false, category: "display" },
-  { label: "베이글", value: google("Bagel Fat One", "sans-serif"), hasBold: false, category: "display" },
-  { label: "구기", value: google("Gugi", "sans-serif"), hasBold: false, category: "display" },
-  { label: "연성", value: google("Yeon Sung", "sans-serif"), hasBold: false, category: "display" },
-
-  { label: "나눔손글씨 펜", value: google("Nanum Pen Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
-  { label: "나눔손글씨 붓", value: google("Nanum Brush Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
-  { label: "개구", value: google("Gaegu", "cursive"), hasBold: true, category: "handwriting", previewScale: 1.15 },
-  { label: "동해독도", value: google("East Sea Dokdo", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.25 },
+  { label: "나눔손글씨 펜", value: webFont("Nanum Pen Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
+  { label: "나눔손글씨 붓", value: webFont("Nanum Brush Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
+  { label: "개구", value: webFont("Gaegu", "cursive"), hasBold: true, category: "handwriting", previewScale: 1.15 },
+  { label: "동해독도", value: webFont("East Sea Dokdo", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.25 },
+  { label: "독도", value: webFont("Dokdo", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.15 },
+  { label: "하이멜로디", value: webFont("Hi Melody", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.15 },
+  { label: "감자꽃", value: webFont("Gamja Flower", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.1 },
+  { label: "귀여운", value: webFont("Cute Font", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
+  { label: "싱글데이", value: webFont("Single Day", "cursive"), hasBold: false, category: "handwriting" },
 ];
 
 export const DEFAULT_FONT = FONTS[0];
