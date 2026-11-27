@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import type Konva from "konva";
 import CanvasEditor from "./components/CanvasEditor";
@@ -99,6 +99,20 @@ export default function App() {
       assets.clear();
     };
   }, []);
+
+  // Font highlighted in the open dropdown: shown on the canvas only, never written to the document.
+  const [fontPreview, setFontPreview] = useState<{ id: string; fontFamily: string } | null>(null);
+  const displayDocument = useMemo<ThumbnailDocument>(() => {
+    if (!fontPreview) return documentValue;
+    return {
+      ...documentValue,
+      elements: documentValue.elements.map((element) =>
+        element.id === fontPreview.id && element.type === "text"
+          ? { ...element, fontFamily: fontPreview.fontFamily }
+          : element,
+      ),
+    };
+  }, [documentValue, fontPreview]);
 
   const updateElement = useCallback((id: string, patch: Partial<EditorElement>) => {
     setDocumentValue((previous) => ({
@@ -344,7 +358,9 @@ export default function App() {
                       className="control-row__grow"
                       value={selected.fontFamily}
                       options={FONT_OPTIONS}
+                      stepWhenClosed
                       onChange={(fontFamily) => updateElement(selected.id, { fontFamily })}
+                      onPreview={(fontFamily) => setFontPreview(fontFamily === null ? null : { id: selected.id, fontFamily })}
                     />
                     <Button
                       className="btn--square"
@@ -488,7 +504,7 @@ export default function App() {
               </div>
               <div className="canvas-paper">
                 <CanvasEditor
-                  documentValue={documentValue}
+                  documentValue={displayDocument}
                   assets={assetStoreRef.current}
                   selectedId={selectedId}
                   scale={scale}

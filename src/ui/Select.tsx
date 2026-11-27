@@ -20,6 +20,10 @@ type Props<T extends string> = {
   value: T;
   options: ReadonlyArray<SelectOption<T>>;
   onChange: (value: T) => void;
+  /** Called with the highlighted option while the list is open, and with null when the list closes (commit or cancel). */
+  onPreview?: (value: T | null) => void;
+  /** Closed trigger: ↑/↓ step to the previous/next option directly (Alt+↑/↓ or Enter still open the list). */
+  stepWhenClosed?: boolean;
   className?: string;
 };
 
@@ -33,7 +37,7 @@ const MIN_HEIGHT = 160;
  * Single choice among many options, drawn by the system (shared DS §6 드롭다운).
  * ARIA select-only combobox: focus stays on the trigger, the listbox follows aria-activedescendant.
  */
-export function Select<T extends string>({ id, label, value, options, onChange, className }: Props<T>) {
+export function Select<T extends string>({ id, label, value, options, onChange, onPreview, stepWhenClosed, className }: Props<T>) {
   const listId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -44,6 +48,8 @@ export function Select<T extends string>({ id, label, value, options, onChange, 
 
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
   const selected = options[selectedIndex];
+  const onPreviewRef = useRef(onPreview);
+  onPreviewRef.current = onPreview;
   const optionId = (index: number) => `${listId}-option-${index}`;
 
   const place = useCallback(() => {
@@ -97,6 +103,16 @@ export function Select<T extends string>({ id, label, value, options, onChange, 
     };
   }, [open, place]);
 
+  // Live preview: the highlighted option, until the list closes or the select unmounts.
+  useEffect(() => {
+    if (!open) return;
+    onPreviewRef.current?.(options[active]?.value ?? null);
+  }, [open, active, options]);
+  useEffect(() => {
+    if (!open) return;
+    return () => onPreviewRef.current?.(null);
+  }, [open]);
+
   // Keep the active option visible.
   useLayoutEffect(() => {
     if (!open) return;
@@ -124,6 +140,12 @@ export function Select<T extends string>({ id, label, value, options, onChange, 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const key = event.key;
     if (!open) {
+      if (stepWhenClosed && (key === "ArrowDown" || key === "ArrowUp") && !event.altKey) {
+        event.preventDefault();
+        const next = nextActiveIndex(selectedIndex, key, options.length);
+        if (options[next] && next !== selectedIndex) onChange(options[next].value);
+        return;
+      }
       if (["ArrowDown", "ArrowUp", "Enter", " ", "Home", "End"].includes(key)) {
         event.preventDefault();
         const index = key === "Home" ? 0 : key === "End" ? options.length - 1 : selectedIndex;
