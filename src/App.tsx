@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import type Konva from "konva";
 import CanvasEditor from "./components/CanvasEditor";
@@ -23,6 +23,7 @@ import { Select, type SelectOption } from "./ui/Select";
 import { DEFAULT_FONT, FONTS, FONT_CATEGORY_LABELS, drawsBold, ensureFontLoaded, findFont, previewFontFamily } from "./editor/fonts";
 import { NumberField } from "./ui/NumberField";
 import { Icon } from "./ui/Icon";
+import { loadSettings, saveSettings } from "./editor/settings";
 
 const FONT_OPTIONS: ReadonlyArray<SelectOption<string>> = FONTS.map((font) => ({
   value: font.value,
@@ -56,8 +57,30 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "요청을 처리하지 못했어요. 다시 시도해 주세요.";
 }
 
+/** Remembers the text and outline choices a user makes, as defaults for the next element they add. */
+function rememberSettings(patch: Partial<EditorElement>) {
+  const p = patch as Partial<Omit<TextElement, "type">> & Partial<Omit<ImageElement, "type">>;
+  const text = {
+    ...(p.fontFamily !== undefined && { fontFamily: p.fontFamily }),
+    ...(p.fontSize !== undefined && { fontSize: p.fontSize }),
+    ...(p.bold !== undefined && { bold: p.bold }),
+    ...(p.color !== undefined && { color: p.color }),
+    ...(p.align !== undefined && { align: p.align }),
+  };
+  const outline = {
+    ...(p.outlineStyle !== undefined && { style: p.outlineStyle }),
+    ...(p.outlineWidth !== undefined && { width: p.outlineWidth }),
+    ...(p.outlineColor !== undefined && { color: p.outlineColor }),
+  };
+  if (Object.keys(text).length) saveSettings({ text });
+  if (Object.keys(outline).length) saveSettings({ outline });
+}
+
 export default function App() {
-  const [documentValue, setDocumentValue] = useState<ThumbnailDocument>(initialDocument);
+  const [documentValue, setDocumentValue] = useState<ThumbnailDocument>(() => ({
+    ...initialDocument,
+    backgroundColor: loadSettings().backgroundColor ?? initialDocument.backgroundColor,
+  }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scale, setScale] = useState(0.65);
   const [notice, setNotice] = useState<string | null>(null);
@@ -100,7 +123,22 @@ export default function App() {
     };
   }, []);
 
+  // Font highlighted in the open dropdown: shown on the canvas only, never written to the document.
+  const [fontPreview, setFontPreview] = useState<{ id: string; fontFamily: string } | null>(null);
+  const displayDocument = useMemo<ThumbnailDocument>(() => {
+    if (!fontPreview) return documentValue;
+    return {
+      ...documentValue,
+      elements: documentValue.elements.map((element) =>
+        element.id === fontPreview.id && element.type === "text"
+          ? { ...element, fontFamily: fontPreview.fontFamily }
+          : element,
+      ),
+    };
+  }, [documentValue, fontPreview]);
+
   const updateElement = useCallback((id: string, patch: Partial<EditorElement>) => {
+    rememberSettings(patch);
     setDocumentValue((previous) => ({
       ...previous,
       elements: previous.elements.map((element) =>
@@ -110,10 +148,12 @@ export default function App() {
   }, []);
 
   const changeBackground = (color: string) => {
+    saveSettings({ backgroundColor: color.toUpperCase() });
     setDocumentValue((previous) => ({ ...previous, backgroundColor: color.toUpperCase() }));
   };
 
   const addText = () => {
+    const recent = loadSettings().text ?? {};
     const element: TextElement = {
       id: crypto.randomUUID(),
       type: "text",
@@ -121,11 +161,11 @@ export default function App() {
       x: 90,
       y: 122,
       width: 830,
-      fontSize: 88,
-      bold: true,
-      color: documentValue.backgroundColor === "#FFFFFF" ? "#111827" : "#FFFFFF",
-      align: "left",
-      fontFamily: DEFAULT_FONT.value,
+      fontSize: recent.fontSize ?? 88,
+      bold: recent.bold ?? true,
+      color: recent.color ?? (documentValue.backgroundColor === "#FFFFFF" ? "#111827" : "#FFFFFF"),
+      align: recent.align ?? "left",
+      fontFamily: recent.fontFamily ?? DEFAULT_FONT.value,
     };
     setDocumentValue((previous) => ({ ...previous, elements: [...previous.elements, element] }));
     setSelectedId(element.id);
@@ -133,6 +173,7 @@ export default function App() {
   };
 
   const addFiles = async (files: File[]) => {
+    const recentOutline = loadSettings().outline ?? {};
     for (const file of files) {
       try {
         const asset = await loadImageFile(file);
@@ -142,9 +183,9 @@ export default function App() {
           assetId: asset.id,
           ...placeImage(asset.image.naturalWidth, asset.image.naturalHeight),
           rotation: 0,
-          outlineStyle: "none",
-          outlineWidth: 12,
-          outlineColor: "#FFFFFF",
+          outlineStyle: recentOutline.style ?? "none",
+          outlineWidth: recentOutline.width ?? 12,
+          outlineColor: recentOutline.color ?? "#FFFFFF",
         };
         assetStoreRef.current.set(asset.id, asset);
         setDocumentValue((previous) => ({ ...previous, elements: [...previous.elements, element] }));
@@ -344,7 +385,9 @@ export default function App() {
                       className="control-row__grow"
                       value={selected.fontFamily}
                       options={FONT_OPTIONS}
+                      stepWhenClosed
                       onChange={(fontFamily) => updateElement(selected.id, { fontFamily })}
+                      onPreview={(fontFamily) => setFontPreview(fontFamily === null ? null : { id: selected.id, fontFamily })}
                     />
                     <Button
                       className="btn--square"
@@ -488,7 +531,7 @@ export default function App() {
               </div>
               <div className="canvas-paper">
                 <CanvasEditor
-                  documentValue={documentValue}
+                  documentValue={displayDocument}
                   assets={assetStoreRef.current}
                   selectedId={selectedId}
                   scale={scale}
