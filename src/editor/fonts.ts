@@ -42,26 +42,13 @@ export const FONTS: readonly FontOption[] = [
   { label: "나눔명조", value: webFont("Nanum Myeongjo", "serif"), hasBold: true, category: "serif" },
   { label: "함렛", value: webFont("Hahmlet", "serif"), hasBold: true, category: "serif" },
   { label: "고운바탕", value: webFont("Gowun Batang", "serif"), hasBold: true, category: "serif" },
-  { label: "송명", value: webFont("Song Myung", "serif"), hasBold: false, category: "serif" },
 
   { label: "검은고딕", value: webFont("Black Han Sans", "sans-serif"), hasBold: false, category: "display" },
-  { label: "가석", value: webFont("Gasoek One", "sans-serif"), hasBold: false, category: "display" },
-  { label: "베이글", value: webFont("Bagel Fat One", "sans-serif"), hasBold: false, category: "display" },
-  { label: "구기", value: webFont("Gugi", "sans-serif"), hasBold: false, category: "display" },
-  { label: "연성", value: webFont("Yeon Sung", "sans-serif"), hasBold: false, category: "display" },
   { label: "스타일리시", value: webFont("Stylish", "sans-serif"), hasBold: false, category: "display" },
-  { label: "흑백사진", value: webFont("Black And White Picture", "sans-serif"), hasBold: false, category: "display", previewScale: 1.2 },
-  { label: "모이라이", value: webFont("Moirai One", "sans-serif"), hasBold: false, category: "display" },
 
   { label: "나눔손글씨 펜", value: webFont("Nanum Pen Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
   { label: "나눔손글씨 붓", value: webFont("Nanum Brush Script", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
-  { label: "개구", value: webFont("Gaegu", "cursive"), hasBold: true, category: "handwriting", previewScale: 1.15 },
-  { label: "동해독도", value: webFont("East Sea Dokdo", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.25 },
   { label: "독도", value: webFont("Dokdo", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.15 },
-  { label: "하이멜로디", value: webFont("Hi Melody", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.15 },
-  { label: "감자꽃", value: webFont("Gamja Flower", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.1 },
-  { label: "귀여운", value: webFont("Cute Font", "cursive"), hasBold: false, category: "handwriting", previewScale: 1.3 },
-  { label: "싱글데이", value: webFont("Single Day", "cursive"), hasBold: false, category: "handwriting" },
 ];
 
 export const DEFAULT_FONT = FONTS[0];

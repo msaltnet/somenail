@@ -121,7 +121,7 @@ SVG와 외부 이미지 URL 입력은 MVP에서 지원하지 않아 스크립트
 - 여러 줄 문자열의 `\n`을 그대로 유지하고 렌더링
 - 폰트 크기·굵기·색상·정렬·위치 변경 시 Stage를 갱신
 - 한글을 지원하는 시스템 폰트 스택을 기본 제공; 웹폰트 사용 시 라이선스 확인 후 **정적 자산으로 번들링**
-  - 적용: Pretendard(UI와 공유)와 Google Fonts 29종(OFL-1.1, `@fontsource/*`)을 번들. OS 시스템 글꼴 스택은 기기마다 출력이 달라 쓰지 않는다(v1.4). `unicode-range` 조각은 캔버스가 직접 내려받게 하지 못하므로 `document.fonts.load()`로 필요한 글자를 받은 뒤 텍스트를 다시 측정·렌더링한다(`src/editor/fonts.ts`)
+  - 적용: Pretendard(UI와 공유)와 Google Fonts 16종(OFL-1.1, `@fontsource/*`)을 번들. OS 시스템 글꼴 스택은 기기마다 출력이 달라 쓰지 않는다(v1.4). `unicode-range` 조각은 캔버스가 직접 내려받게 하지 못하므로 `document.fonts.load()`로 필요한 글자를 받은 뒤 텍스트를 다시 측정·렌더링한다(`src/editor/fonts.ts`)
 - 내보내기 전에 `document.fonts.ready` 등을 이용해 사용하는 폰트 로딩 완료를 확인하여 미리보기/출력 차이를 줄임
 
 ### 5.4 PNG 내보내기

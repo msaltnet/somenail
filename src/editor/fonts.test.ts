@@ -14,9 +14,9 @@ const googleFamily = (value: string) => {
 };
 
 describe("font list", () => {
-  it("offers Pretendard and 29 self-hosted Google Fonts, no OS-dependent system stacks", () => {
+  it("offers Pretendard and 16 self-hosted Google Fonts, no OS-dependent system stacks", () => {
     expect(FONTS.every((font) => family(font.value))).toBe(true);
-    expect(FONTS.filter((font) => googleFamily(font.value))).toHaveLength(29);
+    expect(FONTS.filter((font) => googleFamily(font.value))).toHaveLength(16);
   });
 
   it("defaults new text to Pretendard, loaded once for UI and canvas", () => {
