@@ -13,18 +13,8 @@
 }
 .brand { display: flex; align-items: center; gap: var(--space-2); }
 
-/* Brand mark: an apricot paper tag with one corner snipped off — the only place --color-brand appears. */
-.brand-mark {
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  background: var(--color-brand);
-  color: var(--color-on-brand);
-  border-radius: var(--radius-control);
-  clip-path: polygon(0 0, 100% 0, 100% 68%, 68% 100%, 0 100%);
-  font-family: var(--font-heading);
-  font-size: var(--text-xl); font-weight: var(--weight-bold); line-height: 1;
-  padding-bottom: 3px;
-}
+/* Brand mark: the app icon (public/favicon.svg), shown at 28px. */
+.brand-mark { width: 28px; height: 28px; border-radius: var(--radius-control); display: block; }
 .brand-name {
   font-family: var(--font-heading);
   font-size: var(--text-xl); line-height: var(--leading-xl); font-weight: var(--weight-bold);
