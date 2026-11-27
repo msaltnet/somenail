@@ -295,7 +295,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">s</span>
+          <img className="brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={28} height={28} />
           <span className="brand-name">somenail<span className="brand-dot">.</span></span>
         </div>
         <Button
